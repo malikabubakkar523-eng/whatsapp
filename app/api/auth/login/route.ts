@@ -22,25 +22,34 @@ export async function POST(req: NextRequest) {
     }
 
     const { identifier, password } = parsed.data;
-    const isEmail = identifier.includes("@") && identifier.includes(".");
+    const cleanId = identifier.trim();
+    const cleanUser = cleanUsername(cleanId);
 
-    let user;
-    if (isEmail) {
-      user = await prisma.user.findUnique({
-        where: { email: identifier.toLowerCase().trim() },
-        include: { profile: true, settings: true },
-      });
-    } else {
-      const cleanUser = cleanUsername(identifier);
-      const profile = await prisma.profile.findUnique({
-        where: { username: cleanUser },
+    // 1. Try finding by email first
+    let user = await prisma.user.findFirst({
+      where: {
+        email: { equals: cleanId.toLowerCase() },
+      },
+      include: { profile: true, settings: true },
+    });
+
+    // 2. If not found by email, try finding by username
+    if (!user) {
+      const profile = await prisma.profile.findFirst({
+        where: {
+          OR: [
+            { username: cleanUser },
+            { username: cleanId.toLowerCase() },
+            { username: cleanId },
+          ],
+        },
         include: {
           user: {
             include: { profile: true, settings: true },
           },
         },
       });
-      user = profile?.user;
+      user = profile?.user || null;
     }
 
     if (!user) {
@@ -65,12 +74,43 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update last seen and online status
-    if (user.profile) {
+    // Auto-heal missing profile if any
+    let profile = user.profile;
+    if (!profile) {
+      const fallbackUser = cleanUser || user.email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase();
+      profile = await prisma.profile.create({
+        data: {
+          userId: user.id,
+          username: fallbackUser,
+          displayName: fallbackUser,
+          isOnline: true,
+          lastSeen: new Date(),
+        },
+      }).catch(() => null);
+    } else {
       await prisma.profile.update({
-        where: { id: user.profile.id },
+        where: { id: profile.id },
         data: { isOnline: true, lastSeen: new Date() },
-      });
+      }).catch(() => {});
+    }
+
+    // Auto-heal missing settings if any
+    let settings = user.settings;
+    if (!settings) {
+      settings = await prisma.userSettings.create({
+        data: {
+          userId: user.id,
+          discoverability: "EVERYONE",
+          onlineStatusPrivacy: "EVERYONE",
+          lastSeenPrivacy: "EVERYONE",
+          profilePicturePrivacy: "EVERYONE",
+          readReceiptsEnabled: true,
+          typingIndicatorEnabled: true,
+          notificationsEnabled: true,
+          soundEnabled: true,
+          theme: "system",
+        },
+      }).catch(() => null);
     }
 
     const token = createToken({
@@ -85,8 +125,8 @@ export async function POST(req: NextRequest) {
         id: user.id,
         email: user.email,
         role: user.role,
-        profile: user.profile,
-        settings: user.settings,
+        profile,
+        settings,
       },
       token,
     });
@@ -105,7 +145,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("Login error:", error);
     return NextResponse.json(
-      { error: "Login failed. Please try again." },
+      { error: error.message || "Login failed. Please check your credentials and try again." },
       { status: 500 }
     );
   }

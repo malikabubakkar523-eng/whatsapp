@@ -150,25 +150,50 @@ export default function RegisterPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check size limit: 10MB for avatar
-    if (file.size > 10 * 1024 * 1024) {
-      setError("Photo size must be less than 10MB");
+    if (file.size > 15 * 1024 * 1024) {
+      setError("Photo size must be less than 15MB");
       return;
     }
 
     setIsUploadingPhoto(true);
     setError("");
 
-    // Immediate instant preview using FileReader
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setAvatar(event.target.result as string);
-      }
-    };
-    reader.readAsDataURL(file);
-
     try {
+      // Downscale and compress image to max 400x400 for ultra-fast load
+      const compressedUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const maxDim = 400;
+            let width = img.width;
+            let height = img.height;
+            if (width > height) {
+              if (width > maxDim) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              }
+            } else {
+              if (height > maxDim) {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx?.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL("image/jpeg", 0.82));
+          };
+          img.src = event.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      setAvatar(compressedUrl);
+
+      // Try uploading to server
       const formData = new FormData();
       formData.append("file", file);
 
@@ -182,7 +207,7 @@ export default function RegisterPage() {
         setAvatar(data.url);
       }
     } catch (err) {
-      console.warn("Photo upload warning, using local preview:", err);
+      console.warn("Photo upload warning:", err);
     } finally {
       setIsUploadingPhoto(false);
     }

@@ -130,8 +130,16 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error: any) {
     console.error("Registration error:", error);
+    if (error.code === "P2002") {
+      const target = error.meta?.target;
+      const field = Array.isArray(target) ? target.join(", ") : "email or username";
+      return NextResponse.json(
+        { error: `An account with this ${field} already exists. Please use a different one.` },
+        { status: 409 }
+      );
+    }
     return NextResponse.json(
-      { error: "Registration failed. Please try again." },
+      { error: error.message || "Registration failed. Please check your information and try again." },
       { status: 500 }
     );
   }
