@@ -880,85 +880,114 @@ export function ChatList({
         </div>
       )}
 
-      {/* PIN Setup & Verification Modal Dialog */}
+      {/* State-of-the-art iOS / WhatsApp Passcode Dialog */}
       {showPinModal && (
         <div
-          className="fixed inset-0 bg-black/65 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => setShowPinModal(null)}
+          className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => {
+            setShowPinModal(null);
+            setPinInput("");
+            setPinConfirmInput("");
+            setPinError("");
+          }}
         >
           <div
-            className="w-full max-w-sm bg-white dark:bg-[#1C1C1E] rounded-[24px] p-6 shadow-2xl space-y-4 border border-black/[0.08] dark:border-white/[0.1] text-center"
+            className="w-full max-w-sm bg-white dark:bg-[#1C1C1E] rounded-[28px] p-6 sm:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.45)] space-y-5 border border-black/[0.08] dark:border-white/[0.1] text-center relative animate-pop-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-12 h-12 rounded-[16px] bg-[#007AFF]/10 text-[#007AFF] flex items-center justify-center mx-auto shadow-xs">
-              <KeyRound className="w-6 h-6 stroke-[2]" />
+            {/* Glowing Lock Badge */}
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#008069] via-[#00A884] to-[#25D366] text-white flex items-center justify-center mx-auto shadow-[0_4px_20px_rgba(0,168,132,0.4)]">
+              <Lock className="w-7 h-7 stroke-[2.2]" />
             </div>
 
             <div>
-              <h3 className="text-[18px] font-bold text-black dark:text-white font-ios">
-                {showPinModal.mode === "SETUP"
-                  ? "Set 4-Digit Chat Lock PIN"
-                  : "Enter Chat Lock PIN"}
+              <h3 className="text-[20px] font-extrabold text-black dark:text-white font-ios tracking-tight">
+                {showPinModal.mode === "SETUP" ? "Set Chat Lock PIN" : "Enter Chat PIN"}
               </h3>
-              <p className="text-[12px] text-[#8E8E93] mt-0.5">
+              <p className="text-[13px] text-[#8E8E93] mt-1">
                 {showPinModal.mode === "SETUP"
-                  ? "Create a 4-digit code to protect locked conversations"
-                  : "Enter your 4-digit PIN to access this chat"}
+                  ? "Choose a secure 4-digit PIN to lock private conversations"
+                  : "Enter your 4-digit code to access locked chats"}
               </p>
             </div>
 
             {pinError && (
-              <p className="text-[12px] font-semibold text-[#FF3B30] bg-[#FF3B30]/10 p-2 rounded-[10px]">
+              <div className="text-[12px] font-semibold text-[#FF3B30] bg-[#FF3B30]/10 border border-[#FF3B30]/20 py-2 px-3 rounded-[12px] animate-shake">
                 {pinError}
-              </p>
+              </div>
             )}
 
-            <form onSubmit={handlePinSubmit} className="space-y-3 pt-1">
-              <div>
-                <input
-                  type="password"
-                  maxLength={4}
-                  pattern="\d{4}"
-                  inputMode="numeric"
-                  value={pinInput}
-                  onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="Enter 4-Digit PIN"
-                  autoFocus
-                  className="w-full text-center tracking-[8px] text-[22px] font-bold py-2.5 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-[14px] text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-[#007AFF]"
-                />
-              </div>
-
-              {showPinModal.mode === "SETUP" && (
-                <div>
+            <form onSubmit={handlePinSubmit} className="space-y-4 pt-1">
+              {/* Primary PIN Digits Row */}
+              <div className="space-y-1.5">
+                {showPinModal.mode === "SETUP" && (
+                  <label className="text-[12px] font-semibold text-[#8E8E93] uppercase tracking-wider block text-left ml-1">
+                    Enter New PIN
+                  </label>
+                )}
+                <div className="relative">
                   <input
                     type="password"
                     maxLength={4}
                     pattern="\d{4}"
                     inputMode="numeric"
-                    value={pinConfirmInput}
-                    onChange={(e) =>
-                      setPinConfirmInput(e.target.value.replace(/\D/g, "").slice(0, 4))
-                    }
-                    placeholder="Confirm 4-Digit PIN"
-                    className="w-full text-center tracking-[8px] text-[22px] font-bold py-2.5 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-[14px] text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-[#007AFF]"
+                    autoComplete="one-time-code"
+                    value={pinInput}
+                    onChange={(e) => setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="••••"
+                    autoFocus
+                    className="w-full text-center tracking-[16px] text-[26px] font-extrabold py-3 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-[16px] text-black dark:text-white placeholder-[#8E8E93] focus:outline-none focus:ring-2 focus:ring-[#00A884] border border-black/[0.06] dark:border-white/[0.08] transition-all"
                   />
+                </div>
+              </div>
+
+              {/* Confirm PIN Digits Row (Only in SETUP mode) */}
+              {showPinModal.mode === "SETUP" && (
+                <div className="space-y-1.5 animate-fade-in">
+                  <label className="text-[12px] font-semibold text-[#8E8E93] uppercase tracking-wider block text-left ml-1">
+                    Confirm PIN
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      maxLength={4}
+                      pattern="\d{4}"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      value={pinConfirmInput}
+                      onChange={(e) =>
+                        setPinConfirmInput(e.target.value.replace(/\D/g, "").slice(0, 4))
+                      }
+                      placeholder="••••"
+                      className="w-full text-center tracking-[16px] text-[26px] font-extrabold py-3 bg-[#F2F2F7] dark:bg-[#2C2C2E] rounded-[16px] text-black dark:text-white placeholder-[#8E8E93] focus:outline-none focus:ring-2 focus:ring-[#00A884] border border-black/[0.06] dark:border-white/[0.08] transition-all"
+                    />
+                  </div>
                 </div>
               )}
 
-              <div className="flex items-center justify-between gap-2 pt-2">
+              <div className="flex items-center justify-between gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowPinModal(null)}
-                  className="flex-1 py-2.5 rounded-[12px] text-[14px] font-semibold text-[#8E8E93] hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
+                  onClick={() => {
+                    setShowPinModal(null);
+                    setPinInput("");
+                    setPinConfirmInput("");
+                    setPinError("");
+                  }}
+                  className="flex-1 py-3 rounded-[14px] text-[14px] font-bold text-[#8E8E93] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] active:scale-95 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={pinInput.length !== 4}
-                  className="flex-1 py-2.5 bg-[#007AFF] hover:bg-[#0062CC] disabled:opacity-40 text-white font-bold text-[14px] rounded-[12px] shadow-sm active:scale-95 transition-all"
+                  disabled={
+                    showPinModal.mode === "SETUP"
+                      ? pinInput.length !== 4 || pinConfirmInput.length !== 4
+                      : pinInput.length !== 4
+                  }
+                  className="flex-1 py-3 bg-gradient-to-r from-[#008069] to-[#00A884] hover:opacity-90 disabled:opacity-40 text-white font-bold text-[14px] rounded-[14px] shadow-[0_4px_16px_rgba(0,168,132,0.35)] active:scale-95 transition-all cursor-pointer"
                 >
-                  {showPinModal.mode === "SETUP" ? "Save PIN" : "Unlock"}
+                  {showPinModal.mode === "SETUP" ? "Set PIN" : "Unlock"}
                 </button>
               </div>
             </form>

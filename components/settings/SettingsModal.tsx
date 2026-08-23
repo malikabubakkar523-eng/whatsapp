@@ -18,6 +18,7 @@ import {
   Upload,
   Info,
   ChevronRight,
+  ChevronLeft,
   Lock,
   Heart,
   QrCode,
@@ -384,20 +385,42 @@ export function SettingsModal({ onClose, onOpenLightbox, onOpenQRCode }: Setting
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 animate-fade-in select-none">
-      <div className="bg-[#F2F2F7] dark:bg-[#000000] rounded-[24px] sm:rounded-[28px] w-full max-w-xl h-[650px] max-h-[92vh] shadow-2xl flex flex-col overflow-hidden border border-black/[0.08] dark:border-white/[0.1] relative">
-        {/* Hidden photo file input */}
-        <input
-          type="file"
-          ref={photoFileInputRef}
-          accept="image/*"
-          onChange={handleDevicePhotoUpload}
-          className="hidden"
-        />
+  const getSectionTitle = () => {
+    switch (activeSection) {
+      case "account":
+        return "Account & Profile";
+      case "privacy":
+        return "Privacy & Security";
+      case "appearance":
+        return "Appearance & Theme";
+      case "blocked":
+        return "Blocked Contacts";
+      case "backup":
+        return "Chat Backup & Data";
+      case "about":
+        return "About ChatFlow";
+      case "delete-account":
+        return "Delete Account";
+      default:
+        return "Settings";
+    }
+  };
 
-        {/* iOS Navigation Header Bar */}
-        <header className="h-[54px] px-4 bg-[#F6F6F6]/90 dark:bg-[#1C1C1E]/90 ios-blur border-b border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between z-20 flex-shrink-0">
+  return (
+    <div className="fixed inset-0 z-50 w-full h-full bg-[#F2F2F7] dark:bg-[#000000] flex flex-col overflow-hidden animate-fade-in select-none">
+      {/* Hidden photo file input */}
+      <input
+        type="file"
+        ref={photoFileInputRef}
+        accept="image/*"
+        onChange={handleDevicePhotoUpload}
+        className="hidden"
+      />
+
+      {/* Full-Screen Glassmorphism Navigation Header Bar */}
+      <header className="h-[60px] px-4 sm:px-6 bg-white/80 dark:bg-[#161618]/80 backdrop-blur-2xl ios-blur border-b border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between z-20 flex-shrink-0 shadow-xs">
+        {/* Left Back / Exit Button */}
+        <div className="flex items-center gap-1 min-w-[90px]">
           {activeSection !== "main" ? (
             <button
               type="button"
@@ -408,53 +431,69 @@ export function SettingsModal({ onClose, onOpenLightbox, onOpenQRCode }: Setting
                   setActiveSection("main");
                 }
               }}
-              className="text-[#007AFF] dark:text-[#0A84FF] text-[16px] font-normal hover:opacity-80 active:opacity-50 transition-opacity font-ios flex items-center"
+              className="flex items-center gap-0.5 text-[#007AFF] dark:text-[#0A84FF] text-[16px] font-semibold font-ios active:opacity-60 transition-opacity cursor-pointer"
             >
-              Back
+              <ChevronLeft className="w-6 h-6 stroke-[2.2]" />
+              <span>Settings</span>
             </button>
           ) : (
-            <span className="text-[17px] font-semibold text-black dark:text-white font-ios">
-              Settings
-            </span>
-          )}
-
-          <div className="flex items-center gap-3">
-            {activeSection !== "delete-account" && (
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={isSaving}
-                className="text-[#007AFF] dark:text-[#0A84FF] text-[16px] font-semibold hover:opacity-80 active:opacity-50 transition-opacity"
-              >
-                {isSaving ? "Saving..." : "Save"}
-              </button>
-            )}
             <button
               type="button"
               onClick={onClose}
-              className="w-7 h-7 rounded-full bg-[#767680]/15 text-[#8E8E93] hover:text-black dark:hover:text-white flex items-center justify-center text-[12px]"
+              className="flex items-center gap-0.5 text-[#007AFF] dark:text-[#0A84FF] text-[16px] font-semibold font-ios active:opacity-60 transition-opacity cursor-pointer"
             >
-              ✕
+              <ChevronLeft className="w-6 h-6 stroke-[2.2]" />
+              <span>Chats</span>
             </button>
-          </div>
-        </header>
+          )}
+        </div>
 
-        {/* Status Alerts */}
-        {errorMessage && (
-          <div className="mx-4 mt-3 p-3 bg-[#FF3B30]/10 border border-[#FF3B30]/20 rounded-[12px] text-[13px] font-semibold text-[#FF3B30] flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
-        {saveSuccess && (
-          <div className="mx-4 mt-3 p-3 bg-[#34C759]/10 border border-[#34C759]/20 rounded-[12px] text-[13px] font-semibold text-[#34C759] flex items-center gap-2 animate-fade-in">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-            <span>Settings saved and updated!</span>
-          </div>
-        )}
+        {/* Center: Section Title */}
+        <div className="flex-1 text-center">
+          <h1 className="text-[18px] sm:text-[19px] font-extrabold text-black dark:text-white font-ios tracking-tight">
+            {getSectionTitle()}
+          </h1>
+        </div>
 
-        {/* Settings Body with iOS Inset Grouped layout */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-5">
+        {/* Right Actions: Save & Close Buttons */}
+        <div className="flex items-center justify-end gap-2.5 min-w-[90px]">
+          {activeSection !== "delete-account" && (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-4 py-1.5 bg-[#00A884] hover:bg-[#009272] disabled:opacity-40 text-white font-bold text-[14px] rounded-full shadow-xs active:scale-95 transition-all cursor-pointer"
+            >
+              {isSaving ? "Saving..." : "Save"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-black/[0.06] dark:bg-white/[0.1] text-[#8E8E93] hover:text-black dark:hover:text-white flex items-center justify-center text-[13px] font-bold active:scale-95 transition-all cursor-pointer"
+            title="Close Settings"
+          >
+            ✕
+          </button>
+        </div>
+      </header>
+
+      {/* Main Full-Screen Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto w-full">
+        <div className="max-w-2xl mx-auto p-4 sm:p-6 space-y-6 pb-24">
+          {/* Status Alerts */}
+          {errorMessage && (
+            <div className="p-3 bg-[#FF3B30]/10 border border-[#FF3B30]/20 rounded-[14px] text-[13px] font-semibold text-[#FF3B30] flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+          {saveSuccess && (
+            <div className="p-3 bg-[#34C759]/10 border border-[#34C759]/20 rounded-[14px] text-[13px] font-semibold text-[#34C759] flex items-center gap-2 animate-fade-in">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span>Settings saved and updated!</span>
+            </div>
+          )}
           {activeSection === "main" && (
             <>
               {/* Profile Card Header (iOS Inset Group) */}
