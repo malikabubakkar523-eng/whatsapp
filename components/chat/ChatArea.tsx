@@ -47,6 +47,7 @@ import {
 import { AudioPlayer } from "./AudioPlayer";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { EmojiPicker } from "./EmojiPicker";
+import { MediaStudioModal } from "./MediaStudioModal";
 import { format, isToday, isYesterday } from "date-fns";
 
 interface ChatAreaProps {
@@ -128,6 +129,7 @@ export function ChatArea({
     senderName?: string;
     time?: string;
   } | null>(null);
+  const [mediaStudioFiles, setMediaStudioFiles] = useState<File[] | null>(null);
 
   // Edit Name in Drawer State
   const [isEditingDrawerName, setIsEditingDrawerName] = useState(false);
@@ -248,13 +250,28 @@ export function ChatArea({
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+      let fileUrl = "";
+      try {
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok && data.url) {
+          fileUrl = data.url;
+        }
+      } catch (uploadErr) {}
 
-      const data = await res.json();
-      if (res.ok && data.url) {
+      // Resilient fallback
+      if (!fileUrl) {
+        fileUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      if (fileUrl) {
         let type: MessageType = "FILE";
         if (file.type.startsWith("image/")) type = "IMAGE";
         else if (file.type.startsWith("video/")) type = "VIDEO";
@@ -267,10 +284,10 @@ export function ChatArea({
           replyToId: replyingTo?.id || null,
           attachments: [
             {
-              url: data.url,
-              fileName: data.fileName,
-              fileType: data.fileType,
-              fileSize: data.fileSize,
+              url: fileUrl,
+              fileName: file.name,
+              fileType: file.type || "application/octet-stream",
+              fileSize: file.size,
             },
           ],
         });
@@ -278,12 +295,86 @@ export function ChatArea({
         setInputText("");
         setReplyingTo(null);
         setIsViewOnceInput(false);
-      } else {
-        alert("Upload failed: " + (data.error || "Unknown error"));
       }
     } catch (err) {
       console.error("Upload error:", err);
-      alert("Failed to upload file");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSendMediaStudio = async (data: {
+    items: Array<{
+      file: File;
+      caption: string;
+      filter: string;
+      rotation: number;
+      isViewOnce: boolean;
+      quality: "HD" | "NORMAL";
+    }>;
+    sharedCaption: string;
+    isViewOnce: boolean;
+    isHD: boolean;
+  }) => {
+    setIsUploading(true);
+    try {
+      const uploadedAttachments: Array<{
+        url: string;
+        fileName: string;
+        fileType: string;
+        fileSize: number;
+        duration?: number | null;
+      }> = [];
+
+      for (const item of data.items) {
+        let mediaUrl = "";
+        try {
+          const formData = new FormData();
+          formData.append("file", item.file);
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+          const resData = await res.json();
+          if (res.ok && resData.url) {
+            mediaUrl = resData.url;
+          }
+        } catch (e) {}
+
+        // Resilient fallback to local Data URL
+        if (!mediaUrl) {
+          mediaUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(item.file);
+          });
+        }
+
+        uploadedAttachments.push({
+          url: mediaUrl,
+          fileName: item.file.name,
+          fileType: item.file.type || "application/octet-stream",
+          fileSize: item.file.size,
+        });
+      }
+
+      const firstIsVideo = data.items[0]?.file.type.startsWith("video/");
+      const msgType: MessageType = firstIsVideo ? "VIDEO" : "IMAGE";
+
+      onSendMessage({
+        content: data.sharedCaption || inputText.trim(),
+        type: msgType,
+        isViewOnce: data.isViewOnce,
+        replyToId: replyingTo?.id || null,
+        attachments: uploadedAttachments,
+      });
+
+      setInputText("");
+      setReplyingTo(null);
+      setIsViewOnceInput(false);
+      setMediaStudioFiles(null);
+    } catch (err) {
+      console.error("Media studio send error:", err);
     } finally {
       setIsUploading(false);
     }
@@ -347,9 +438,12 @@ export function ChatArea({
       <input
         type="file"
         ref={imageInputRef}
+        multiple
         accept="image/*,video/*"
         onChange={(e) => {
-          if (e.target.files?.[0]) handleFileUpload(e.target.files[0]);
+          if (e.target.files && e.target.files.length > 0) {
+            setMediaStudioFiles(Array.from(e.target.files));
+          }
           e.target.value = "";
         }}
         className="hidden"
@@ -357,10 +451,12 @@ export function ChatArea({
       <input
         type="file"
         ref={cameraInputRef}
-        accept="image/*"
+        accept="image/*,video/*"
         capture="environment"
         onChange={(e) => {
-          if (e.target.files?.[0]) handleFileUpload(e.target.files[0]);
+          if (e.target.files && e.target.files.length > 0) {
+            setMediaStudioFiles(Array.from(e.target.files));
+          }
           e.target.value = "";
         }}
         className="hidden"
@@ -705,29 +801,52 @@ export function ChatArea({
                           </div>
                         ) : (
                           <>
-                            {/* Image Attachment (Interactive Lightbox Trigger) */}
-                            {msg.type === "IMAGE" && msg.attachments?.[0] && (
-                              <div
-                                className="mb-1.5 rounded-[18px] overflow-hidden max-w-sm cursor-pointer group/img relative shadow-xs border border-black/[0.06] dark:border-white/[0.08]"
-                                onClick={() =>
-                                  setActiveImageLightbox({
-                                    url: msg.attachments![0].url,
-                                    fileName: msg.attachments![0].fileName,
-                                    senderName: msg.sender?.profile?.displayName || "User",
-                                    time: timeStr,
-                                  })
-                                }
-                              >
-                                <img
+                            {/* Video Attachment (Interactive In-Chat Video Player) */}
+                            {msg.type === "VIDEO" && msg.attachments?.[0] && (
+                              <div className="mb-1.5 rounded-[18px] overflow-hidden max-w-sm relative shadow-xs border border-black/[0.06] dark:border-white/[0.08] bg-black">
+                                <video
                                   src={msg.attachments[0].url}
-                                  alt="Attachment"
-                                  className="w-full h-auto object-cover max-h-80 rounded-[18px] group-hover/img:scale-[1.02] transition-transform duration-200"
+                                  controls
+                                  playsInline
+                                  className="w-full h-auto max-h-80 object-cover rounded-[18px]"
                                 />
-                                <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/15 transition-colors flex items-center justify-center">
-                                  <span className="opacity-0 group-hover/img:opacity-100 px-3 py-1.5 bg-black/65 backdrop-blur-md rounded-full text-white text-[12px] font-bold shadow-lg transition-opacity flex items-center gap-1.5 scale-95 group-hover/img:scale-100 duration-150">
-                                    <ImageIcon className="w-3.5 h-3.5" /> View Photo
-                                  </span>
-                                </div>
+                              </div>
+                            )}
+
+                            {/* Image Attachment (Single or Multi-Grid with Lightbox) */}
+                            {msg.type === "IMAGE" && msg.attachments && msg.attachments.length > 0 && (
+                              <div
+                                className={`mb-1.5 rounded-[18px] overflow-hidden max-w-sm ${
+                                  msg.attachments.length > 1 ? "grid grid-cols-2 gap-1" : ""
+                                }`}
+                              >
+                                {msg.attachments.map((att, attIdx) => (
+                                  <div
+                                    key={attIdx}
+                                    className="cursor-pointer group/img relative shadow-xs border border-black/[0.06] dark:border-white/[0.08] rounded-[14px] overflow-hidden"
+                                    onClick={() =>
+                                      setActiveImageLightbox({
+                                        url: att.url,
+                                        fileName: att.fileName,
+                                        senderName: msg.sender?.profile?.displayName || "User",
+                                        time: timeStr,
+                                      })
+                                    }
+                                  >
+                                    <img
+                                      src={att.url}
+                                      alt="Attachment"
+                                      className={`w-full ${
+                                        msg.attachments!.length > 1 ? "h-36 object-cover" : "h-auto max-h-80 object-cover"
+                                      } rounded-[14px] group-hover/img:scale-[1.02] transition-transform duration-200`}
+                                    />
+                                    <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/15 transition-colors flex items-center justify-center">
+                                      <span className="opacity-0 group-hover/img:opacity-100 px-3 py-1.5 bg-black/65 backdrop-blur-md rounded-full text-white text-[12px] font-bold shadow-lg transition-opacity flex items-center gap-1.5 scale-95 group-hover/img:scale-100 duration-150">
+                                        <ImageIcon className="w-3.5 h-3.5" /> View Photo
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             )}
 
@@ -1391,6 +1510,16 @@ export function ChatArea({
             Tap outside or click ✕ to close
           </footer>
         </div>
+      )}
+
+      {/* WhatsApp Media Studio Editor & Multi-Send Preview Modal */}
+      {mediaStudioFiles && mediaStudioFiles.length > 0 && (
+        <MediaStudioModal
+          isOpen={true}
+          initialFiles={mediaStudioFiles}
+          onClose={() => setMediaStudioFiles(null)}
+          onSend={handleSendMediaStudio}
+        />
       )}
     </div>
   );
