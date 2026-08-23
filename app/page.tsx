@@ -126,7 +126,7 @@ export default function AppDashboard() {
     }
   }, [user, fetchConversations, fetchNotifications]);
 
-  // 4. Fetch Messages
+  // 4. Fetch Messages & Ensure Conversation Loaded
   useEffect(() => {
     if (!selectedConversationId) {
       setMessages([]);
@@ -147,6 +147,25 @@ export default function AppDashboard() {
       })
       .catch((err) => console.error("Fetch messages error:", err))
       .finally(() => setIsLoadingMessages(false));
+
+    // If conversation object is not yet loaded in state, fetch it
+    setConversations((prev) => {
+      const exists = prev.some((c) => c.id === selectedConversationId);
+      if (!exists) {
+        fetch(`/api/conversations/${selectedConversationId}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.conversation) {
+              setConversations((current) => {
+                if (current.some((c) => c.id === data.conversation.id)) return current;
+                return [data.conversation, ...current];
+              });
+            }
+          })
+          .catch(() => {});
+      }
+      return prev;
+    });
 
     return () => {
       socket.emit("conversation:leave", { conversationId: selectedConversationId });
@@ -579,7 +598,50 @@ export default function AppDashboard() {
       duration?: number | null;
     }>;
   }) => {
-    if (!selectedConversationId) return;
+    if (!user || !selectedConversationId) return;
+
+    // Create optimistic temporary message so it renders instantly
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const optimisticMsg: MessageTypeData = {
+      id: tempId,
+      conversationId: selectedConversationId,
+      senderId: user.id,
+      content: msgData.content || "",
+      type: msgData.type || "TEXT",
+      isViewOnce: msgData.isViewOnce || false,
+      viewOnceOpened: false,
+      replyToId: msgData.replyToId || null,
+      isPinned: false,
+      isDeleted: false,
+      deletedForEveryone: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isMine: true,
+      status: "SENT",
+      sender: {
+        id: user.id,
+        profile: {
+          username: user.profile.username,
+          displayName: user.profile.displayName,
+          avatar: user.profile.avatar,
+          isOnline: true,
+        },
+      },
+      attachments:
+        msgData.attachments?.map((att, idx) => ({
+          id: `att_${tempId}_${idx}`,
+          messageId: tempId,
+          url: att.url,
+          fileName: att.fileName,
+          fileType: att.fileType,
+          fileSize: att.fileSize,
+          duration: att.duration || null,
+        })) || [],
+      reactions: [],
+    };
+
+    setMessages((prev) => [...prev, optimisticMsg]);
+    playSentSound();
 
     try {
       const res = await fetch(`/api/conversations/${selectedConversationId}/messages`, {
@@ -590,19 +652,21 @@ export default function AppDashboard() {
 
       const data = await res.json();
       if (res.ok && data.message) {
-        playSentSound();
-        setMessages((prev) => [...prev, data.message]);
+        const confirmedMsg = { ...data.message, isMine: true };
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempId ? confirmedMsg : m))
+        );
 
         const socket = getSocket();
-        socket.emit("message:send", { message: data.message });
+        socket.emit("message:send", { message: confirmedMsg });
 
         setConversations((prev) => {
           const current = prev.find((c) => c.id === selectedConversationId);
           if (current) {
             const updated = {
               ...current,
-              lastMessage: data.message,
-              lastMessageAt: data.message.createdAt,
+              lastMessage: confirmedMsg,
+              lastMessageAt: confirmedMsg.createdAt,
             };
             return [updated, ...prev.filter((c) => c.id !== selectedConversationId)];
           }
@@ -613,14 +677,18 @@ export default function AppDashboard() {
         if (data.aiReply) {
           setTimeout(() => {
             playMessageSound();
-            setMessages((prev) => [...prev, data.aiReply]);
+            const aiMsg = { ...data.aiReply, isMine: false, status: "READ" };
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === aiMsg.id)) return prev;
+              return [...prev, aiMsg];
+            });
             setConversations((prev) => {
               const current = prev.find((c) => c.id === selectedConversationId);
               if (current) {
                 const updated = {
                   ...current,
-                  lastMessage: data.aiReply,
-                  lastMessageAt: data.aiReply.createdAt,
+                  lastMessage: aiMsg,
+                  lastMessageAt: aiMsg.createdAt,
                 };
                 return [updated, ...prev.filter((c) => c.id !== selectedConversationId)];
               }
@@ -628,9 +696,13 @@ export default function AppDashboard() {
             });
           }, 350);
         }
+      } else {
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        console.error("Message send failed:", data?.error);
       }
     } catch (err) {
       console.error("Send message error:", err);
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
     }
   };
 

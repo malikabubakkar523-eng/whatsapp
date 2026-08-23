@@ -389,15 +389,25 @@ export function ChatArea({
 
   if (!conversation) {
     return (
-      <div className="flex-1 hidden md:flex flex-col items-center justify-center p-8 bg-[#F2F2F7] dark:bg-[#000000] text-center select-none">
-        <div className="w-20 h-20 rounded-[24px] bg-[#00A884]/15 flex items-center justify-center text-[#00A884] mb-4 shadow-sm">
-          <Send className="w-9 h-9 stroke-[2]" />
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#F2F2F7] dark:bg-[#000000] text-center select-none relative">
+        {onBackToChatList && (
+          <button
+            type="button"
+            onClick={onBackToChatList}
+            className="absolute top-4 left-4 flex items-center gap-1 text-[#007AFF] dark:text-[#0A84FF] text-[16px] font-semibold md:hidden active:opacity-60"
+          >
+            <ChevronLeft className="w-5 h-5" />
+            <span>Chats</span>
+          </button>
+        )}
+        <div className="w-16 h-16 rounded-[22px] bg-[#00A884]/15 flex items-center justify-center text-[#00A884] mb-3 shadow-xs">
+          <Send className="w-8 h-8 stroke-[2]" />
         </div>
-        <h2 className="text-[22px] font-bold text-black dark:text-white font-ios tracking-tight">
-          ChatFlow for iOS & Web
+        <h2 className="text-[20px] font-bold text-black dark:text-white font-ios tracking-tight">
+          Select or Start a Chat
         </h2>
-        <p className="text-[14px] text-[#8E8E93] mt-1.5 max-w-sm font-normal">
-          Send and receive messages with your unique <span className="font-semibold text-[#00A884] dark:text-[#34D399]">@username</span>. End-to-end real-time connected.
+        <p className="text-[13px] text-[#8E8E93] mt-1 max-w-xs font-normal">
+          Pick a conversation from the list or search a <span className="font-semibold text-[#00A884] dark:text-[#34D399]">@username</span> to start messaging.
         </p>
       </div>
     );
