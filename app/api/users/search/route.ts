@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!query) {
-      // Return suggested or active users (up to 15)
+      // Return suggested or active users (up to 20)
       const profiles = await prisma.profile.findMany({
         where: {
           userId: {
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
             },
           },
         },
-        take: 15,
+        take: 20,
         orderBy: [{ isOnline: "desc" }, { lastSeen: "desc" }],
         include: {
           user: {
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
 
     const cleanQuery = cleanUsername(query);
 
-    // Search profiles matching username, displayName, or bio
+    // Search profiles matching username, displayName, bio, or email
     const profiles = await prisma.profile.findMany({
       where: {
         userId: {
@@ -74,12 +74,13 @@ export async function GET(req: NextRequest) {
           },
         },
         OR: [
-          { username: { contains: cleanQuery } },
-          { displayName: { contains: query } },
-          { bio: { contains: query } },
+          { username: { contains: cleanQuery, mode: "insensitive" } },
+          { displayName: { contains: query, mode: "insensitive" } },
+          { bio: { contains: query, mode: "insensitive" } },
+          { user: { email: { contains: query, mode: "insensitive" } } },
         ],
       },
-      take: 30,
+      take: 40,
       include: {
         user: {
           select: {
@@ -92,12 +93,18 @@ export async function GET(req: NextRequest) {
 
     // Rank results: exact username match first, starts-with username second, display name match third
     const ranked = [...profiles].sort((a, b) => {
-      const aUser = a.username.toLowerCase();
-      const bUser = b.username.toLowerCase();
-      if (aUser === cleanQuery) return -1;
-      if (bUser === cleanQuery) return 1;
-      if (aUser.startsWith(cleanQuery) && !bUser.startsWith(cleanQuery)) return -1;
-      if (!aUser.startsWith(cleanQuery) && bUser.startsWith(cleanQuery)) return 1;
+      const aUser = (a.username || "").toLowerCase();
+      const bUser = (b.username || "").toLowerCase();
+      const aName = (a.displayName || "").toLowerCase();
+      const bName = (b.displayName || "").toLowerCase();
+      const q = cleanQuery.toLowerCase();
+
+      if (aUser === q) return -1;
+      if (bUser === q) return 1;
+      if (aUser.startsWith(q) && !bUser.startsWith(q)) return -1;
+      if (!aUser.startsWith(q) && bUser.startsWith(q)) return 1;
+      if (aName.startsWith(q) && !bName.startsWith(q)) return -1;
+      if (!aName.startsWith(q) && bName.startsWith(q)) return 1;
       return 0;
     });
 

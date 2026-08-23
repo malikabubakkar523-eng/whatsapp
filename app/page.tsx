@@ -433,6 +433,22 @@ export default function AppDashboard() {
     try {
       const isTargetSelf = target.id === user?.id || target.username === user?.profile.username;
 
+      // Optimistic instant select if conversation already exists in memory
+      const existing = conversations.find(
+        (c) =>
+          !c.isGroup &&
+          ((target.id && c.otherUser?.id === target.id) ||
+            (target.username && c.otherUser?.username.toLowerCase() === target.username.toLowerCase()) ||
+            (isTargetSelf && c.isSelf))
+      );
+
+      if (existing) {
+        setSelectedConversationId(existing.id);
+        setActiveTab("chats");
+        setViewProfileUsername(null);
+        return;
+      }
+
       const res = await fetch("/api/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -444,9 +460,14 @@ export default function AppDashboard() {
       });
       const data = await res.json();
       if (res.ok && data.conversation) {
-        await fetchConversations();
+        setConversations((prev) => {
+          if (prev.some((c) => c.id === data.conversation.id)) return prev;
+          return [data.conversation, ...prev];
+        });
         setSelectedConversationId(data.conversation.id);
         setActiveTab("chats");
+        setViewProfileUsername(null);
+        fetchConversations();
       }
     } catch (err) {
       console.error("Start chat error:", err);
