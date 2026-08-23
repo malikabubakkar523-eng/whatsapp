@@ -387,6 +387,19 @@ export function ChatArea({
     return format(d, "MMMM d, yyyy").toUpperCase();
   };
 
+  const formatLastSeen = (dateStr?: string | Date | null) => {
+    if (!dateStr) return "offline";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return "offline";
+      if (isToday(d)) return `last seen today at ${format(d, "h:mm a")}`;
+      if (isYesterday(d)) return `last seen yesterday at ${format(d, "h:mm a")}`;
+      return `last seen ${format(d, "MMM d 'at' h:mm a")}`;
+    } catch (e) {
+      return "offline";
+    }
+  };
+
   if (!conversation) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#F2F2F7] dark:bg-[#000000] text-center select-none relative">
@@ -555,13 +568,14 @@ export function ChatArea({
                   <p className="text-[12px] text-[#8E8E93] truncate leading-none mt-0.5">
                     {conversation.members.length} members
                   </p>
+                ) : isOnline ? (
+                  <p className="text-[12px] text-[#00A884] dark:text-[#34D399] font-medium flex items-center gap-1.5 leading-none mt-0.5 animate-fade-in">
+                    <span className="w-2 h-2 rounded-full bg-[#00A884] dark:bg-[#34D399] animate-pulse shadow-[0_0_8px_rgba(0,168,132,0.6)]" />
+                    <span>online</span>
+                  </p>
                 ) : (
-                  <p className="text-[12px] text-[#8E8E93] truncate font-normal leading-none mt-0.5">
-                    {isOnline ? (
-                      <span className="text-[#00A884] dark:text-[#34D399] font-medium">online</span>
-                    ) : (
-                      formatUsername(username)
-                    )}
+                  <p className="text-[12px] text-[#8E8E93] truncate font-normal leading-none mt-0.5 animate-fade-in">
+                    {formatLastSeen(conversation.otherUser?.lastSeen)}
                   </p>
                 )}
               </div>

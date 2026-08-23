@@ -78,40 +78,92 @@ app.prepare().then(() => {
     }
   });
 
+  // Helper to mark a user online and broadcast
+  async function markUserOnline(userId: string, socketId: string) {
+    if (!onlineUsers.has(userId)) {
+      onlineUsers.set(userId, new Set());
+    }
+    onlineUsers.get(userId)!.add(socketId);
+
+    try {
+      await prisma.profile.updateMany({
+        where: { userId },
+        data: { isOnline: true, lastSeen: new Date() },
+      });
+    } catch (e) {}
+
+    // Broadcast online status to everyone
+    io.emit("user:status", {
+      userId,
+      isOnline: true,
+      lastSeen: new Date().toISOString(),
+    });
+
+    // Auto-deliver all pending messages sent to this user
+    try {
+      const undelivered = await prisma.message.findMany({
+        where: {
+          conversation: {
+            members: { some: { userId } },
+          },
+          senderId: { not: userId },
+          isDeleted: false,
+          deliveries: { none: { userId } },
+        },
+        select: { id: true, conversationId: true, senderId: true },
+        take: 100,
+      });
+
+      for (const msg of undelivered) {
+        await prisma.messageDelivery.upsert({
+          where: { messageId_userId: { messageId: msg.id, userId } },
+          create: { messageId: msg.id, userId, deliveredAt: new Date() },
+          update: { deliveredAt: new Date() },
+        }).catch(() => {});
+
+        io.to(`conv:${msg.conversationId}`).emit("message:status_update", {
+          messageId: msg.id,
+          conversationId: msg.conversationId,
+          status: "DELIVERED",
+          userId,
+        });
+      }
+    } catch (e) {}
+  }
+
+  // Helper to mark a user offline and broadcast
+  async function markUserOffline(userId: string, socketId: string) {
+    const userSockets = onlineUsers.get(userId);
+    if (userSockets) {
+      userSockets.delete(socketId);
+      if (userSockets.size === 0) {
+        onlineUsers.delete(userId);
+
+        const lastSeen = new Date();
+        try {
+          await prisma.profile.updateMany({
+            where: { userId },
+            data: { isOnline: false, lastSeen },
+          });
+        } catch (e) {}
+
+        io.emit("user:status", {
+          userId,
+          isOnline: false,
+          lastSeen: lastSeen.toISOString(),
+        });
+      }
+    }
+  }
+
   io.on("connection", async (socket: Socket) => {
     const user = socket.data.user;
 
     if (user && user.userId) {
       const userId = user.userId;
-
-      // Track online sockets for user
-      if (!onlineUsers.has(userId)) {
-        onlineUsers.set(userId, new Set());
-      }
-      onlineUsers.get(userId)!.add(socket.id);
-
-      // Join user's personal room
+      await markUserOnline(userId, socket.id);
       socket.join(`user:${userId}`);
 
-      // If first socket connection for this user, broadcast online
-      if (onlineUsers.get(userId)!.size === 1) {
-        try {
-          await prisma.profile.updateMany({
-            where: { userId },
-            data: { isOnline: true, lastSeen: new Date() },
-          });
-        } catch (e) {
-          // Ignore error
-        }
-
-        io.emit("user:status", {
-          userId,
-          isOnline: true,
-          lastSeen: new Date().toISOString(),
-        });
-      }
-
-      // Join all active conversations user belongs to
       try {
         const memberships = await prisma.conversationMember.findMany({
           where: { userId },
@@ -120,9 +172,7 @@ app.prepare().then(() => {
         memberships.forEach((m) => {
           socket.join(`conv:${m.conversationId}`);
         });
-      } catch (e) {
-        // Ignore error
-      }
+      } catch (e) {}
     }
 
     // Authenticate socket manually if client sends auth event
@@ -134,11 +184,7 @@ app.prepare().then(() => {
         socket.data.user = decoded;
         const userId = decoded.userId;
 
-        if (!onlineUsers.has(userId)) {
-          onlineUsers.set(userId, new Set());
-        }
-        onlineUsers.get(userId)!.add(socket.id);
-
+        await markUserOnline(userId, socket.id);
         socket.join(`user:${userId}`);
 
         const memberships = await prisma.conversationMember.findMany({
@@ -148,19 +194,14 @@ app.prepare().then(() => {
         memberships.forEach((m) => {
           socket.join(`conv:${m.conversationId}`);
         });
+      } catch (e) {}
+    });
 
-        await prisma.profile.updateMany({
-          where: { userId },
-          data: { isOnline: true, lastSeen: new Date() },
-        });
-
-        io.emit("user:status", {
-          userId,
-          isOnline: true,
-          lastSeen: new Date().toISOString(),
-        });
-      } catch (e) {
-        // Token invalid
+    // Explicit offline signal on window close / page hide
+    socket.on("presence:offline", async () => {
+      const u = socket.data.user;
+      if (u && u.userId) {
+        await markUserOffline(u.userId, socket.id);
       }
     });
 
@@ -198,12 +239,46 @@ app.prepare().then(() => {
       });
     });
 
-    // Message broadcast
-    socket.on("message:send", (data: { message: any }) => {
+    // Message broadcast with real-time delivery calculation
+    socket.on("message:send", async (data: { message: any }) => {
       if (!data?.message?.conversationId) return;
       const conversationId = data.message.conversationId;
-      // Broadcast to room
+      const messageId = data.message.id;
+      const senderId = data.message.senderId;
+
+      // Broadcast to all other conversation members in room
       socket.to(`conv:${conversationId}`).emit("message:new", data.message);
+
+      // Check if recipient members are online right now
+      try {
+        const otherMembers = await prisma.conversationMember.findMany({
+          where: { conversationId, userId: { not: senderId } },
+          select: { userId: true },
+        });
+
+        const isAnyRecipientOnline = otherMembers.some(
+          (m) => onlineUsers.has(m.userId) && onlineUsers.get(m.userId)!.size > 0
+        );
+
+        if (isAnyRecipientOnline) {
+          for (const m of otherMembers) {
+            if (onlineUsers.has(m.userId)) {
+              await prisma.messageDelivery.upsert({
+                where: { messageId_userId: { messageId, userId: m.userId } },
+                create: { messageId, userId: m.userId, deliveredAt: new Date() },
+                update: { deliveredAt: new Date() },
+              }).catch(() => {});
+            }
+          }
+
+          // Emit DELIVERED status update (2 grey ticks)
+          io.to(`conv:${conversationId}`).emit("message:status_update", {
+            messageId,
+            conversationId,
+            status: "DELIVERED",
+          });
+        }
+      } catch (e) {}
     });
 
     // Message delivered acknowledgment
@@ -234,42 +309,66 @@ app.prepare().then(() => {
           status: "DELIVERED",
           userId,
         });
-      } catch (e) {
-        // Ignore
-      }
+      } catch (e) {}
     });
 
-    // Message read receipt
-    socket.on("message:read", async (data: { messageId: string; conversationId: string }) => {
-      if (!data?.messageId || !socket.data.user) return;
+    // Message read receipt (2 blue ticks)
+    socket.on("message:read", async (data: { messageId?: string; conversationId: string }) => {
+      if (!socket.data.user || !data?.conversationId) return;
       const userId = socket.data.user.userId;
+      const conversationId = data.conversationId;
+
       try {
-        await prisma.messageRead.upsert({
-          where: {
-            messageId_userId: {
+        await prisma.conversationMember.update({
+          where: { conversationId_userId: { conversationId, userId } },
+          data: { lastReadAt: new Date() },
+        }).catch(() => {});
+
+        if (data.messageId) {
+          await prisma.messageRead.upsert({
+            where: {
+              messageId_userId: {
+                messageId: data.messageId,
+                userId,
+              },
+            },
+            create: {
               messageId: data.messageId,
               userId,
+              readAt: new Date(),
             },
+            update: {
+              readAt: new Date(),
+            },
+          }).catch(() => {});
+        }
+
+        // Mark all previous unread messages from other users in this conversation as read
+        const unreadMsgs = await prisma.message.findMany({
+          where: {
+            conversationId,
+            senderId: { not: userId },
+            isDeleted: false,
           },
-          create: {
-            messageId: data.messageId,
-            userId,
-            readAt: new Date(),
-          },
-          update: {
-            readAt: new Date(),
-          },
+          select: { id: true },
+          take: 50,
         });
 
-        io.to(`conv:${data.conversationId}`).emit("message:status_update", {
+        for (const msg of unreadMsgs) {
+          await prisma.messageRead.upsert({
+            where: { messageId_userId: { messageId: msg.id, userId } },
+            create: { messageId: msg.id, userId, readAt: new Date() },
+            update: { readAt: new Date() },
+          }).catch(() => {});
+        }
+
+        io.to(`conv:${conversationId}`).emit("message:status_update", {
           messageId: data.messageId,
-          conversationId: data.conversationId,
+          conversationId,
           status: "READ",
           userId,
         });
-      } catch (e) {
-        // Ignore
-      }
+      } catch (e) {}
     });
 
     // Message reaction

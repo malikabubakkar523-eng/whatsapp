@@ -294,9 +294,19 @@ export default function AppDashboard() {
       });
     };
 
-    const handleStatusUpdate = (data: { messageId: string; status: "DELIVERED" | "READ"; userId: string }) => {
+    const handleStatusUpdate = (data: { messageId?: string; conversationId?: string; status: "DELIVERED" | "READ"; userId?: string }) => {
       setMessages((prev) =>
-        prev.map((m) => (m.id === data.messageId ? { ...m, status: data.status } : m))
+        prev.map((m) => {
+          if (data.messageId && m.id === data.messageId) {
+            return { ...m, status: data.status };
+          }
+          if (data.conversationId && m.conversationId === data.conversationId && m.isMine) {
+            if (data.status === "READ" || (data.status === "DELIVERED" && m.status !== "READ")) {
+              return { ...m, status: data.status };
+            }
+          }
+          return m;
+        })
       );
     };
 
@@ -367,6 +377,14 @@ export default function AppDashboard() {
       setActiveWebRTCCall(null);
     };
 
+    // Presence unload handlers
+    const handleBeforeUnload = () => {
+      socket.emit("presence:offline");
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("pagehide", handleBeforeUnload);
+
     socket.on("user:status", handleStatus);
     socket.on("user:profile_updated", handleProfileUpdated);
     socket.on("message:new", handleNewMessage);
@@ -379,6 +397,8 @@ export default function AppDashboard() {
     socket.on("call:ended", handleCallEnded);
 
     return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("pagehide", handleBeforeUnload);
       socket.off("user:status", handleStatus);
       socket.off("user:profile_updated", handleProfileUpdated);
       socket.off("message:new", handleNewMessage);
