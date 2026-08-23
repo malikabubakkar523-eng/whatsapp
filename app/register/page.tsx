@@ -38,8 +38,14 @@ export default function RegisterPage() {
   const [avatar, setAvatar] = useState("");
 
   // Live validation
-  const [usernameStatus, setUsernameStatus] = useState<{ available?: boolean; message?: string; error?: string }>({});
+  const [usernameStatus, setUsernameStatus] = useState<{
+    available?: boolean;
+    message?: string;
+    error?: string;
+    suggestions?: string[];
+  }>({});
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [error, setError] = useState("");
@@ -62,12 +68,20 @@ export default function RegisterPage() {
     const timer = setTimeout(async () => {
       setIsCheckingUsername(true);
       try {
-        const res = await fetch(`/api/users/check-username?username=${encodeURIComponent(username)}`);
+        const res = await fetch(
+          `/api/users/check-username?username=${encodeURIComponent(
+            username
+          )}&displayName=${encodeURIComponent(displayName)}`
+        );
         const data = await res.json();
         if (data.available) {
           setUsernameStatus({ available: true, message: data.message });
         } else {
-          setUsernameStatus({ available: false, error: data.error });
+          setUsernameStatus({
+            available: false,
+            error: data.error,
+            suggestions: data.suggestions || [],
+          });
         }
       } catch (err) {
         setUsernameStatus({ available: false, error: "Error checking username" });
@@ -77,7 +91,30 @@ export default function RegisterPage() {
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [username]);
+  }, [username, displayName]);
+
+  // Auto generate smart username suggestions
+  const handleAutoSuggest = async () => {
+    setIsSuggesting(true);
+    try {
+      const res = await fetch(
+        `/api/users/check-username?suggest=true&username=${encodeURIComponent(
+          username
+        )}&displayName=${encodeURIComponent(displayName || "user")}`
+      );
+      const data = await res.json();
+      if (data.suggestions && data.suggestions.length > 0) {
+        setUsername(data.suggestions[0]);
+        setUsernameStatus({
+          available: false,
+          suggestions: data.suggestions,
+        });
+      }
+    } catch (err) {
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -259,9 +296,21 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                Choose Unique @Username (No phone number needed)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                  Choose Unique @Username
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAutoSuggest}
+                  disabled={isSuggesting}
+                  className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Sparkles className="w-3 h-3 text-amber-500 animate-pulse" />
+                  <span>{isSuggesting ? "Generating..." : "🎲 Auto Suggest"}</span>
+                </button>
+              </div>
+
               <div className="relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-sm text-brand-600 dark:text-brand-400">
                   @
@@ -288,15 +337,40 @@ export default function RegisterPage() {
                     <span>{usernameStatus.message}</span>
                   </p>
                 ) : usernameStatus.error ? (
-                  <p className="text-[11px] text-red-500 font-semibold">
-                    {usernameStatus.error}
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-[11px] text-red-500 font-semibold">
+                      {usernameStatus.error}
+                    </p>
+                  </div>
                 ) : (
                   <p className="text-[10px] text-gray-400">
                     Use 3-30 letters, numbers, or underscores.
                   </p>
                 )}
               </div>
+
+              {/* Verified Smart Username Suggestions */}
+              {usernameStatus.suggestions && usernameStatus.suggestions.length > 0 && (
+                <div className="mt-2 p-2.5 rounded-xl bg-brand-500/10 border border-brand-500/20 space-y-1.5 animate-fade-in">
+                  <p className="text-[11px] font-bold text-brand-700 dark:text-brand-300 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Available suggestions (Tap to select):</span>
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {usernameStatus.suggestions.map((sug) => (
+                      <button
+                        key={sug}
+                        type="button"
+                        onClick={() => setUsername(sug)}
+                        className="px-2.5 py-1 bg-white dark:bg-gray-800 border border-brand-300 dark:border-brand-700 text-brand-700 dark:text-brand-300 hover:bg-brand-600 hover:text-white rounded-lg text-xs font-bold transition-all shadow-xs active:scale-95 flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>@{sug}</span>
+                        <Check className="w-3 h-3 text-emerald-500 group-hover:text-white" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2 pt-2">

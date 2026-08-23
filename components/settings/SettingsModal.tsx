@@ -7,6 +7,7 @@ import {
   Palette,
   Ban,
   X,
+  Check,
   CheckCircle2,
   AlertCircle,
   Loader2,
@@ -66,8 +67,14 @@ export function SettingsModal({ onClose, onOpenLightbox, onOpenQRCode }: Setting
   // Account State
   const [displayName, setDisplayName] = useState(user?.profile?.displayName || "");
   const [username, setUsername] = useState(user?.profile?.username || "");
-  const [usernameStatus, setUsernameStatus] = useState<{ available?: boolean; message?: string; error?: string }>({});
+  const [usernameStatus, setUsernameStatus] = useState<{
+    available?: boolean;
+    message?: string;
+    error?: string;
+    suggestions?: string[];
+  }>({});
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
 
   // Profile State
   const [bio, setBio] = useState(user?.profile?.bio || "");
@@ -101,6 +108,29 @@ export function SettingsModal({ onClose, onOpenLightbox, onOpenQRCode }: Setting
 
   const photoFileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Auto generate smart username suggestions
+  const handleAutoSuggest = async () => {
+    setIsSuggesting(true);
+    try {
+      const res = await fetch(
+        `/api/users/check-username?suggest=true&username=${encodeURIComponent(
+          username
+        )}&displayName=${encodeURIComponent(displayName || user?.profile?.displayName || "user")}`
+      );
+      const data = await res.json();
+      if (data.suggestions && data.suggestions.length > 0) {
+        setUsername(data.suggestions[0]);
+        setUsernameStatus({
+          available: false,
+          suggestions: data.suggestions,
+        });
+      }
+    } catch (err) {
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
   // Live username availability check
   useEffect(() => {
     if (!username || username.toLowerCase() === user?.profile?.username.toLowerCase()) {
@@ -117,12 +147,20 @@ export function SettingsModal({ onClose, onOpenLightbox, onOpenQRCode }: Setting
     const timer = setTimeout(async () => {
       setIsCheckingUsername(true);
       try {
-        const res = await fetch(`/api/users/check-username?username=${encodeURIComponent(username)}`);
+        const res = await fetch(
+          `/api/users/check-username?username=${encodeURIComponent(
+            username
+          )}&displayName=${encodeURIComponent(displayName)}`
+        );
         const data = await res.json();
         if (data.available) {
           setUsernameStatus({ available: true, message: data.message });
         } else {
-          setUsernameStatus({ available: false, error: data.error });
+          setUsernameStatus({
+            available: false,
+            error: data.error,
+            suggestions: data.suggestions || [],
+          });
         }
       } catch (err) {
         setUsernameStatus({ available: false, error: "Error checking username" });
@@ -132,7 +170,7 @@ export function SettingsModal({ onClose, onOpenLightbox, onOpenQRCode }: Setting
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [username, user?.profile?.username]);
+  }, [username, displayName, user?.profile?.username]);
 
   // Load blocked users
   useEffect(() => {
@@ -563,9 +601,21 @@ export function SettingsModal({ onClose, onOpenLightbox, onOpenQRCode }: Setting
                 </div>
 
                 <div>
-                  <label className="block text-[13px] font-semibold text-black dark:text-white mb-1.5 font-ios">
-                    Unique Username (@)
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[13px] font-semibold text-black dark:text-white font-ios">
+                      Unique Username (@)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleAutoSuggest}
+                      disabled={isSuggesting}
+                      className="text-[12px] font-bold text-[#00A884] dark:text-[#34D399] hover:underline flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                      <span>{isSuggesting ? "Generating..." : "🎲 Auto Suggest"}</span>
+                    </button>
+                  </div>
+
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#00A884] font-bold text-[15px]">
                       @
@@ -594,6 +644,29 @@ export function SettingsModal({ onClose, onOpenLightbox, onOpenQRCode }: Setting
                     <p className="text-[12px] text-[#FF3B30] font-medium mt-1">
                       {usernameStatus.error}
                     </p>
+                  )}
+
+                  {/* Verified Smart Suggestions */}
+                  {usernameStatus.suggestions && usernameStatus.suggestions.length > 0 && (
+                    <div className="mt-2.5 p-2.5 rounded-[14px] bg-[#00A884]/10 border border-[#00A884]/20 space-y-1.5 animate-fade-in">
+                      <p className="text-[11px] font-bold text-[#00A884] dark:text-[#34D399] flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Available suggestions (Tap to select):</span>
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {usernameStatus.suggestions.map((sug) => (
+                          <button
+                            key={sug}
+                            type="button"
+                            onClick={() => setUsername(sug)}
+                            className="px-2.5 py-1 bg-white dark:bg-[#2C2C2E] border border-[#00A884]/30 text-[#00A884] dark:text-[#34D399] hover:bg-[#00A884] hover:text-white rounded-[10px] text-[12px] font-bold transition-all shadow-xs active:scale-95 flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>@{sug}</span>
+                            <Check className="w-3 h-3 text-emerald-500 group-hover:text-white" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
 
