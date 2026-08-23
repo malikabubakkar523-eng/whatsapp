@@ -130,13 +130,62 @@ export async function GET(
       },
     });
 
-    // Determine message delivery / read status
+    // Fetch other members' lastReadAt timestamp
+    const otherMembers = await prisma.conversationMember.findMany({
+      where: {
+        conversationId,
+        userId: { not: userId },
+      },
+      select: {
+        userId: true,
+        lastReadAt: true,
+      },
+    });
+
+    const maxOtherReadTime = otherMembers.reduce<number>((max, m) => {
+      if (m.lastReadAt) {
+        const t = new Date(m.lastReadAt).getTime();
+        return t > max ? t : max;
+      }
+      return max;
+    }, 0);
+
+    // Automatically mark all incoming unread messages as read in the database
+    const unreadIncoming = messages.filter((m) => m.senderId !== userId);
+    if (unreadIncoming.length > 0) {
+      Promise.all(
+        unreadIncoming.map((msg) =>
+          prisma.messageRead
+            .upsert({
+              where: {
+                messageId_userId: {
+                  messageId: msg.id,
+                  userId,
+                },
+              },
+              create: {
+                messageId: msg.id,
+                userId,
+                readAt: new Date(),
+              },
+              update: {
+                readAt: new Date(),
+              },
+            })
+            .catch(() => {})
+        )
+      ).catch(() => {});
+    }
+
+    // Determine message delivery / read status with blue ticks
     const formatted = messages.map((m) => {
       const isMine = m.senderId === userId;
       let status: "SENT" | "DELIVERED" | "READ" = "SENT";
 
       if (isMine) {
-        if (m.reads.length > 0) {
+        const msgTime = new Date(m.createdAt).getTime();
+        // If message has read records or any other member read after this message was created
+        if (m.reads.length > 0 || (maxOtherReadTime > 0 && maxOtherReadTime >= msgTime)) {
           status = "READ";
         } else if (m.deliveries.length > 0) {
           status = "DELIVERED";
@@ -150,18 +199,20 @@ export async function GET(
       };
     });
 
-    // Also update member's lastReadAt
-    await prisma.conversationMember.update({
-      where: {
-        conversationId_userId: {
-          conversationId,
-          userId,
+    // Update this member's lastReadAt
+    await prisma.conversationMember
+      .update({
+        where: {
+          conversationId_userId: {
+            conversationId,
+            userId,
+          },
         },
-      },
-      data: {
-        lastReadAt: new Date(),
-      },
-    });
+        data: {
+          lastReadAt: new Date(),
+        },
+      })
+      .catch(() => {});
 
     return NextResponse.json({
       messages: formatted.reverse(), // Chronological order

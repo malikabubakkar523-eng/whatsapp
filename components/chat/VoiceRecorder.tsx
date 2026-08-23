@@ -126,24 +126,39 @@ export function VoiceRecorder({ onSendVoice, onCancel }: VoiceRecorderProps) {
         const extension = mimeType.includes("mp4") ? "mp4" : mimeType.includes("ogg") ? "ogg" : "webm";
         const file = new File([audioBlob], `voice_${Date.now()}.${extension}`, { type: mimeType });
 
-        const formData = new FormData();
-        formData.append("file", file);
+        let audioUrl = "";
 
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
+        try {
+          const formData = new FormData();
+          formData.append("file", file);
 
-        const data = await res.json();
-        if (res.ok && data.url) {
-          onSendVoice(data.url, finalDuration || 1, isViewOnce);
-        } else {
-          alert("Failed to upload voice message: " + (data.error || "Unknown error"));
-          onCancel();
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await res.json();
+          if (res.ok && data.url) {
+            audioUrl = data.url;
+          }
+        } catch (uploadErr) {
+          console.warn("Upload API failed, converting to Data URL:", uploadErr);
+        }
+
+        // If server upload didn't return a URL, convert audioBlob to Base64 Data URL locally
+        if (!audioUrl) {
+          audioUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(audioBlob);
+          });
+        }
+
+        if (audioUrl) {
+          onSendVoice(audioUrl, finalDuration || 1, isViewOnce);
         }
       } catch (e) {
-        console.error("Voice upload error:", e);
-        alert("Failed to upload voice recording");
+        console.error("Voice processing error:", e);
         onCancel();
       } finally {
         setIsUploading(false);

@@ -4,13 +4,6 @@ import path from "path";
 
 // Ensure uploads directory exists
 const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
-try {
-  if (!fs.existsSync(UPLOADS_DIR)) {
-    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-  }
-} catch (e) {
-  console.warn("Failed to create uploads directory:", e);
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,26 +25,37 @@ export async function POST(req: NextRequest) {
     const ext = path.extname(originalName) || ".jpg";
     const baseName = path.basename(originalName, ext).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 30);
     const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}_${baseName}${ext}`;
-    
-    // Ensure dir exists before writing
-    if (!fs.existsSync(UPLOADS_DIR)) {
-      fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-    }
-    
-    const filePath = path.join(UPLOADS_DIR, uniqueFileName);
-    fs.writeFileSync(filePath, buffer);
+    const fileType = file.type || "application/octet-stream";
 
-    const publicUrl = `/uploads/${uniqueFileName}`;
+    let publicUrl = "";
+
+    // 1. Try writing to public/uploads directory (Works on Node.js / Docker / Localhost)
+    try {
+      if (!fs.existsSync(UPLOADS_DIR)) {
+        fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+      }
+      const filePath = path.join(UPLOADS_DIR, uniqueFileName);
+      fs.writeFileSync(filePath, buffer);
+      publicUrl = `/uploads/${uniqueFileName}`;
+    } catch (fsErr) {
+      // 2. If running on Vercel Serverless (Read-only filesystem), fallback to resilient Data URL
+      console.warn("Filesystem read-only (Vercel Serverless). Using Base64 Data URL fallback.");
+      const base64Data = buffer.toString("base64");
+      publicUrl = `data:${fileType};base64,${base64Data}`;
+    }
 
     return NextResponse.json({
       success: true,
       url: publicUrl,
       fileName: originalName,
-      fileType: file.type || "application/octet-stream",
+      fileType,
       fileSize: file.size,
     });
   } catch (error: any) {
     console.error("Upload error:", error);
-    return NextResponse.json({ error: "Failed to upload file. Please try again." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to upload file. Please try again." },
+      { status: 500 }
+    );
   }
 }

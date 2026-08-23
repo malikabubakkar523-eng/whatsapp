@@ -218,41 +218,68 @@ export function SettingsModal({ onClose, onOpenLightbox, onOpenQRCode }: Setting
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // 10MB limit
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMessage("Photo size must be less than 10MB");
+      return;
+    }
+
     setIsUploadingPhoto(true);
     setErrorMessage("");
+
+    // Read local data URL
+    let localDataUrl = "";
+    try {
+      localDataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+      if (localDataUrl) {
+        setAvatar(localDataUrl);
+      }
+    } catch (e) {}
 
     try {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+      let finalAvatarUrl = localDataUrl;
 
-      const data = await res.json();
-      if (res.ok && data.url) {
-        setAvatar(data.url);
+      try {
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok && data.url) {
+          finalAvatarUrl = data.url;
+          setAvatar(data.url);
+        }
+      } catch (uploadErr) {
+        console.warn("Upload API warning, using local preview URL:", uploadErr);
+      }
+
+      if (finalAvatarUrl) {
         const updateRes = await fetch("/api/users/profile", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ avatar: data.url }),
+          body: JSON.stringify({ avatar: finalAvatarUrl }),
         });
+
         if (updateRes.ok) {
-          updateProfile({ avatar: data.url });
+          updateProfile({ avatar: finalAvatarUrl });
           const socket = getSocket();
           socket.emit("profile:update", {
             userId: user?.id,
-            avatar: data.url,
+            avatar: finalAvatarUrl,
             displayName: user?.profile?.displayName,
             bio: user?.profile?.bio,
           });
         }
-      } else {
-        setErrorMessage(data.error || "Failed to upload avatar");
       }
     } catch (err) {
-      setErrorMessage("Network error during photo upload");
+      setErrorMessage("Failed to update photo");
     } finally {
       setIsUploadingPhoto(false);
     }
