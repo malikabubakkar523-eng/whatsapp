@@ -40,17 +40,17 @@ export function AppLogo({ size = "md", showText = false, className = "" }: AppLo
     <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
       {/* 3D Glossy WhatsApp Paper-Plane Badge */}
       <div
-        className={`${sizeClasses[size]} rounded-2xl md:rounded-[18px] overflow-hidden flex items-center justify-center flex-shrink-0 relative shadow-[0_4px_16px_rgba(0,168,132,0.35)] ring-2 ring-[#00A884]/30 bg-gradient-to-br from-[#25D366] via-[#00A884] to-[#075E54] active:scale-95 transition-transform duration-200`}
+        className={`${sizeClasses[size]} rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 relative shadow-[0_4px_16px_rgba(0,168,132,0.35)] ring-2 ring-[#00A884]/40 bg-white dark:bg-[#1C1C1E] active:scale-95 transition-transform duration-200`}
       >
         {!imgFailed ? (
           <img
-            src="/app-logo-full.jpg"
+            src="/logo.png"
             alt="ChatFlow Logo"
             onError={() => setImgFailed(true)}
-            className="w-full h-full object-cover scale-[1.75] -translate-y-[6%] select-none pointer-events-none drop-shadow-md"
+            className="w-full h-full object-cover select-none pointer-events-none drop-shadow-xs"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center relative">
+          <div className="w-full h-full flex items-center justify-center relative bg-gradient-to-br from-[#25D366] via-[#00A884] to-[#075E54]">
             <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent pointer-events-none" />
             <Send className={`${iconSizes[size]} text-white fill-white/30 -rotate-12 translate-x-0.5 -translate-y-0.5 drop-shadow-md`} />
           </div>

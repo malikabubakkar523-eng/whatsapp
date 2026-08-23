@@ -17,6 +17,7 @@ import {
 import { useAuth } from "@/components/auth/AuthContext";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Avatar } from "@/components/ui/Avatar";
+import { AppLogo } from "@/components/ui/AppLogo";
 import { formatUsername } from "@/utils/username";
 
 export type NavTab = "chats" | "status" | "calls" | "find" | "groups" | "notifications" | "settings" | "admin";
@@ -50,9 +51,10 @@ export function SidebarNav({
         <button
           type="button"
           onClick={() => setActiveTab("chats")}
-          className="w-11 h-11 rounded-[14px] bg-[#00A884] dark:bg-[#00A884] flex items-center justify-center text-white shadow-sm shadow-[#00A884]/30 hover:opacity-90 active:scale-95 transition-all"
+          className="hover:scale-105 active:scale-95 transition-transform"
+          title="ChatFlow Home"
         >
-          <MessageSquare className="w-5 h-5 fill-white/20 stroke-[2.2]" />
+          <AppLogo size="sm" showText={false} />
         </button>
 
         {/* Navigation Tabs */}

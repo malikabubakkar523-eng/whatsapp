@@ -35,6 +35,10 @@ import {
   ChevronLeft,
   X,
   Bot,
+  UserPlus,
+  Mail,
+  MoreVertical,
+  Settings,
 } from "lucide-react";
 import { ConversationType } from "@/types";
 import { Avatar } from "@/components/ui/Avatar";
@@ -97,6 +101,7 @@ export function ChatList({
   const [chatLockPin, setChatLockPin] = useState<string | null>(null);
   const [viewingArchived, setViewingArchived] = useState(false);
   const [viewingLocked, setViewingLocked] = useState(false);
+  const [showMenuDropdown, setShowMenuDropdown] = useState(false);
 
   // PIN Dialog Modal State
   const [showPinModal, setShowPinModal] = useState<{
@@ -327,11 +332,11 @@ export function ChatList({
 
   return (
     <div className="w-full bg-white dark:bg-[#161618] flex flex-col h-full select-none border-r border-black/[0.08] dark:border-white/[0.08] relative">
-      {/* iOS Sticky Header */}
-      <div className="pt-2.5 px-4 pb-2 bg-[#F6F6F6]/90 dark:bg-[#1C1C1E]/90 ios-blur sticky top-0 z-20 border-b border-black/[0.06] dark:border-white/[0.06]">
-        <div className="flex items-center justify-between mb-2">
-          {/* Header Left */}
-          <div className="flex items-center gap-1.5 min-w-[70px]">
+      {/* Glassmorphism Sticky Top Header */}
+      <div className="pt-3 px-4 pb-2.5 bg-white/80 dark:bg-[#161618]/80 backdrop-blur-2xl ios-blur sticky top-0 z-30 border-b border-black/[0.08] dark:border-white/[0.08] shadow-xs">
+        <div className="flex items-center justify-between mb-2.5">
+          {/* Header Left (Start): Logo + Chat Heading */}
+          <div className="flex items-center gap-2.5 min-w-0">
             {viewingArchived || viewingLocked ? (
               <button
                 type="button"
@@ -339,48 +344,157 @@ export function ChatList({
                   setViewingArchived(false);
                   setViewingLocked(false);
                 }}
-                className="flex items-center gap-0.5 text-[#007AFF] dark:text-[#0A84FF] text-[15px] font-semibold font-ios active:opacity-60 transition-opacity"
+                className="flex items-center gap-1 text-[#007AFF] dark:text-[#0A84FF] text-[16px] font-semibold font-ios active:opacity-60 transition-opacity"
               >
                 <ChevronLeft className="w-5 h-5" />
                 <span>Chats</span>
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={() => setActiveFilter(activeFilter === "UNREAD" ? "ALL" : "UNREAD")}
-                className="text-[#007AFF] dark:text-[#0A84FF] text-[15px] font-medium font-ios active:opacity-60"
-              >
-                {activeFilter === "UNREAD" ? "All" : "Unread"}
-              </button>
+              <div className="flex items-center gap-2.5">
+                <AppLogo size="sm" showText={false} />
+                <span className="text-[21px] font-extrabold tracking-tight text-black dark:text-white font-ios leading-none">
+                  Chats
+                </span>
+              </div>
+            )}
+            {(viewingArchived || viewingLocked) && (
+              <span className="text-[19px] font-bold text-black dark:text-white font-ios ml-1">
+                {viewingArchived ? "Archived" : "Locked Chats 🔒"}
+              </span>
             )}
           </div>
 
-          {/* Header Middle (Centered Logo & Title) */}
-          <div className="flex items-center justify-center gap-2 flex-1">
-            <AppLogo size="md" showText={false} />
-            <span className="text-[20px] font-extrabold tracking-tight text-black dark:text-white font-ios leading-none">
-              {viewingArchived ? "Archived" : viewingLocked ? "Locked Chats 🔒" : "Chats"}
-            </span>
-          </div>
-
-          {/* Header Right: Group & New Chat Buttons */}
-          <div className="flex items-center justify-end gap-1 min-w-[70px]">
+          {/* Header Right: 1. Group Icon, 2. Find People Icon, 3. 3-Dots Menu */}
+          <div className="flex items-center gap-1.5">
+            {/* 1. Group Icon */}
             <button
               type="button"
               onClick={onOpenNewGroup}
-              className="text-[#007AFF] dark:text-[#0A84FF] p-1.5 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-transform"
+              className="text-[#007AFF] dark:text-[#0A84FF] p-2 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-transform cursor-pointer"
               title="New Group"
             >
-              <Users className="w-5 h-5 stroke-[1.9]" />
+              <Users className="w-5 h-5 stroke-[2]" />
             </button>
+
+            {/* 2. Find People Icon */}
             <button
               type="button"
               onClick={onOpenNewChat}
-              className="text-[#007AFF] dark:text-[#0A84FF] p-1.5 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-transform"
-              title="New Message"
+              className="text-[#007AFF] dark:text-[#0A84FF] p-2 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-transform cursor-pointer"
+              title="Find People"
             >
-              <SquarePen className="w-5 h-5 stroke-[1.9]" />
+              <UserPlus className="w-5 h-5 stroke-[2]" />
             </button>
+
+            {/* 3. 3-Dots Menu */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowMenuDropdown(!showMenuDropdown)}
+                className="text-[#007AFF] dark:text-[#0A84FF] p-2 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-transform cursor-pointer"
+                title="More Options"
+              >
+                <MoreVertical className="w-5 h-5 stroke-[2]" />
+              </button>
+
+              {/* 3-Dots Glassmorphism Dropdown */}
+              {showMenuDropdown && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowMenuDropdown(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-1.5 z-50 w-52 bg-white/95 dark:bg-[#252528]/95 ios-blur rounded-[16px] shadow-ios-sheet border border-black/[0.08] dark:border-white/[0.1] p-1.5 animate-pop-in">
+                    {/* Unread Messages Filter Option */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveFilter(activeFilter === "UNREAD" ? "ALL" : "UNREAD");
+                        setShowMenuDropdown(false);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-[10px] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-[14px] text-black dark:text-white font-medium text-left transition-colors cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <Mail className="w-4 h-4 text-[#007AFF]" />
+                        <span>{activeFilter === "UNREAD" ? "Show All Chats" : "Unread Messages"}</span>
+                      </span>
+                      {activeFilter === "UNREAD" && (
+                        <span className="w-2 h-2 rounded-full bg-[#00A884]" />
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onOpenNewGroup();
+                        setShowMenuDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-[14px] text-black dark:text-white font-medium text-left transition-colors cursor-pointer"
+                    >
+                      <Users className="w-4 h-4 text-[#34C759]" />
+                      <span>New Group</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onOpenNewChat();
+                        setShowMenuDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-[14px] text-black dark:text-white font-medium text-left transition-colors cursor-pointer"
+                    >
+                      <UserPlus className="w-4 h-4 text-[#007AFF]" />
+                      <span>Find People</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (chatLockPin) {
+                          setShowPinModal({ mode: "UNLOCK_FOLDER" });
+                        } else {
+                          setShowPinModal({ mode: "SETUP" });
+                        }
+                        setShowMenuDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-[14px] text-black dark:text-white font-medium text-left transition-colors cursor-pointer"
+                    >
+                      <Lock className="w-4 h-4 text-[#FF9500]" />
+                      <span>Locked Chats ({lockedCount})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setViewingArchived(true);
+                        setShowMenuDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-[14px] text-black dark:text-white font-medium text-left transition-colors cursor-pointer"
+                    >
+                      <Archive className="w-4 h-4 text-[#8E8E93]" />
+                      <span>Archived ({archivedCount})</span>
+                    </button>
+
+                    {onOpenSettings && (
+                      <>
+                        <div className="my-1 border-t border-black/[0.06] dark:border-white/[0.08]" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onOpenSettings();
+                            setShowMenuDropdown(false);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-[14px] text-black dark:text-white font-medium text-left transition-colors cursor-pointer"
+                        >
+                          <Settings className="w-4 h-4 text-[#8E8E93]" />
+                          <span>Settings</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
