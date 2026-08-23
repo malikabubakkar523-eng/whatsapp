@@ -14,10 +14,7 @@ export async function GET(
     const targetUser = await prisma.user.findFirst({
       where: {
         profile: {
-          username: {
-            equals: username,
-            mode: "insensitive",
-          },
+          username: username.toLowerCase().replace(/^@/, ""),
         },
       },
       select: {
