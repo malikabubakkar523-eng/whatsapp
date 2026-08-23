@@ -1,0 +1,215 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 242 242 247;
+    --foreground: 0 0 0;
+    --card: 255 255 255;
+    --card-foreground: 0 0 0;
+    --border: 60 60 67;
+    --primary: 0 168 132;
+    --primary-foreground: 255 255 255;
+    --muted: 242 242 247;
+    --muted-foreground: 142 142 147;
+    --radius: 12px;
+  }
+
+  .dark {
+    --background: 0 0 0;
+    --foreground: 255 255 255;
+    --card: 28 28 30;
+    --card-foreground: 255 255 255;
+    --border: 84 84 88;
+    --primary: 0 168 132;
+    --primary-foreground: 255 255 255;
+    --muted: 28 28 30;
+    --muted-foreground: 142 142 147;
+  }
+}
+
+body {
+  color: rgb(var(--foreground));
+  background: rgb(var(--background));
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Allow text selection inside chat messages & inputs */
+input, textarea, [contenteditable="true"], .selectable-text {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+/* iOS Frosted Glass Header / Blur Effect */
+.ios-blur {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Chat Wallpaper Background Patterns */
+.chat-pattern-light {
+  background-color: #efeae2;
+  background-image: 
+    radial-gradient(#0000000c 1.2px, transparent 1.2px),
+    radial-gradient(#00000008 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+}
+
+.chat-pattern-dark {
+  background-color: #0b141a;
+  background-image: 
+    radial-gradient(#ffffff0a 1.2px, transparent 1.2px),
+    radial-gradient(#ffffff06 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+}
+
+/* iOS Inset List Row Separator */
+.ios-separator {
+  position: relative;
+}
+.ios-separator::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  left: 76px;
+  height: 0.5px;
+  background-color: rgba(60, 60, 67, 0.12);
+}
+.dark .ios-separator::after {
+  background-color: rgba(84, 84, 88, 0.28);
+}
+
+/* iOS Switch / Toggle Component */
+.ios-switch {
+  position: relative;
+  display: inline-flex;
+  height: 31px;
+  width: 51px;
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  transition: background-color 0.2s ease-in-out;
+  background-color: #e9e9ea;
+}
+.dark .ios-switch {
+  background-color: #39393d;
+}
+.ios-switch[data-checked="true"] {
+  background-color: #34c759;
+}
+.ios-switch-thumb {
+  pointer-events: none;
+  display: inline-block;
+  height: 27px;
+  width: 27px;
+  border-radius: 9999px;
+  background-color: #ffffff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.08);
+  transform: translateX(0);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ios-switch[data-checked="true"] .ios-switch-thumb {
+  transform: translateX(20px);
+}
+
+/* Custom Minimal iOS Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(142, 142, 147, 0.3);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(142, 142, 147, 0.5);
+}
+
+/* Waveform bars animation */
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+
+.animate-wave-1 { animation: wave 1.2s ease-in-out infinite; }
+.animate-wave-2 { animation: wave 1.2s ease-in-out 0.2s infinite; }
+.animate-wave-3 { animation: wave 1.2s ease-in-out 0.4s infinite; }
+.animate-wave-4 { animation: wave 1.2s ease-in-out 0.6s infinite; }
+
+/* Typing bounce animation */
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-4px); }
+}
+
+.typing-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: currentColor;
+  opacity: 0.8;
+}
+
+.typing-dot:nth-child(1) { animation: typing-bounce 1.4s infinite 0s; }
+.typing-dot:nth-child(2) { animation: typing-bounce 1.4s infinite 0.2s; }
+.typing-dot:nth-child(3) { animation: typing-bounce 1.4s infinite 0.4s; }
+
+/* Message Bubble Shadows & Corners */
+.bubble-sent-ios {
+  border-radius: 18px 18px 4px 18px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06);
+}
+
+.bubble-recv-ios {
+  border-radius: 18px 18px 18px 4px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06);
+}
+
+/* iOS Segmented Control */
+.ios-segmented-control {
+  background-color: rgba(118, 118, 128, 0.12);
+  border-radius: 9px;
+  padding: 2px;
+  display: inline-flex;
+}
+.dark .ios-segmented-control {
+  background-color: rgba(118, 118, 128, 0.24);
+}
+.ios-segmented-button {
+  padding: 4px 14px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  color: #000000;
+}
+.dark .ios-segmented-button {
+  color: #ffffff;
+}
+.ios-segmented-button[data-active="true"] {
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04);
+  font-weight: 600;
+}
+.dark .ios-segmented-button[data-active="true"] {
+  background-color: #636366;
+  color: #ffffff;
+}
