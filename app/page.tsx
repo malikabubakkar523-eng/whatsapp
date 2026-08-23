@@ -513,6 +513,30 @@ export default function AppDashboard() {
     }
   };
 
+  // Auto-open chat from external QR code scan or URL query parameter (?user=..., ?chat=..., /u/...)
+  useEffect(() => {
+    if (!user || typeof window === "undefined") return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetUser =
+      urlParams.get("user") ||
+      urlParams.get("chat") ||
+      urlParams.get("u") ||
+      sessionStorage.getItem("chatflow_pending_chat_user");
+
+    if (targetUser) {
+      sessionStorage.removeItem("chatflow_pending_chat_user");
+      const cleanUser = targetUser.replace(/^@/, "").trim();
+      if (cleanUser) {
+        handleStartChatWithUser({ username: cleanUser });
+        // Clean URL query parameters smoothly without reload
+        if (window.location.search) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+    }
+  }, [user]);
+
   const handleStartCallWithUser = async (callTarget: {
     id?: string;
     username: string;

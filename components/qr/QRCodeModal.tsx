@@ -59,7 +59,11 @@ export function QRCodeModal({
   useEffect(() => {
     if (tab === "my-code" && qrCanvasRef.current && user) {
       const canvas = qrCanvasRef.current;
-      const payload = `chatflow://user/${username}`;
+      const origin =
+        typeof window !== "undefined" && window.location.origin
+          ? window.location.origin
+          : process.env.NEXT_PUBLIC_APP_URL || "https://chatflow.app";
+      const payload = `${origin}/u/${encodeURIComponent(username)}`;
 
       QRCode.toCanvas(
         canvas,
@@ -251,7 +255,11 @@ export function QRCodeModal({
   // 4. SHARE & DOWNLOAD ACTIONS
   // -------------------------------------------------------------
   const handleShare = async () => {
-    const shareUrl = `https://chatflow.app/u/${username}`;
+    const origin =
+      typeof window !== "undefined" && window.location.origin
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL || "https://chatflow.app";
+    const shareUrl = `${origin}/u/${encodeURIComponent(username)}`;
     if (navigator.share) {
       try {
         await navigator.share({
