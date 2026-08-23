@@ -85,6 +85,7 @@ interface ChatAreaProps {
     bio?: string | null;
     isOnline?: boolean;
   }) => void;
+  onStartCall?: (data: { callType: "VOICE" | "VIDEO" }) => void;
 }
 
 export function ChatArea({
@@ -105,6 +106,7 @@ export function ChatArea({
   isLoadingMessages = false,
   onBackToChatList,
   onOpenLightbox,
+  onStartCall,
 }: ChatAreaProps) {
   const [inputText, setInputText] = useState("");
   const [replyingTo, setReplyingTo] = useState<MessageTypeData | null>(null);
@@ -465,8 +467,11 @@ export function ChatArea({
             <div className="flex items-center gap-2 text-[#007AFF] dark:text-[#0A84FF]">
               <button
                 type="button"
-                onClick={() => setActiveCallModal("VIDEO")}
-                className="p-2 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all"
+                onClick={() => {
+                  if (onStartCall) onStartCall({ callType: "VIDEO" });
+                  else setActiveCallModal("VIDEO");
+                }}
+                className="p-2 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all cursor-pointer"
                 title="Video Call"
               >
                 <Video className="w-5 h-5 stroke-[1.9]" />
@@ -474,8 +479,11 @@ export function ChatArea({
 
               <button
                 type="button"
-                onClick={() => setActiveCallModal("VOICE")}
-                className="p-2 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all"
+                onClick={() => {
+                  if (onStartCall) onStartCall({ callType: "VOICE" });
+                  else setActiveCallModal("VOICE");
+                }}
+                className="p-2 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all cursor-pointer"
                 title="Voice Call"
               >
                 <Phone className="w-5 h-5 stroke-[1.9]" />

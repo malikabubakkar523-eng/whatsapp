@@ -1,7 +1,19 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { AuthProvider } from "@/components/auth/AuthContext";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#00A884" },
+    { media: "(prefers-color-scheme: dark)", color: "#111B21" },
+  ],
+};
 
 export const metadata: Metadata = {
   title: "ChatFlow — Connect through Usernames. Chat in Real Time.",
@@ -27,7 +39,7 @@ export default function RootLayout({
       </head>
       <body
         suppressHydrationWarning
-        className="antialiased min-h-screen bg-chat-bg-light dark:bg-chat-bg-dark text-chat-text-light dark:text-chat-text-dark selection:bg-brand-500 selection:text-white transition-colors duration-200"
+        className="antialiased h-[100dvh] w-full overflow-hidden bg-chat-bg-light dark:bg-chat-bg-dark text-chat-text-light dark:text-chat-text-dark selection:bg-brand-500 selection:text-white transition-colors duration-200"
       >
         <ThemeProvider>
           <AuthProvider>{children}</AuthProvider>

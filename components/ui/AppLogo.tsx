@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { Send, MessageSquare } from "lucide-react";
 
 interface AppLogoProps {
   size?: "xs" | "sm" | "md" | "lg" | "xl";
@@ -9,40 +10,58 @@ interface AppLogoProps {
 }
 
 export function AppLogo({ size = "md", showText = false, className = "" }: AppLogoProps) {
+  const [imgFailed, setImgFailed] = useState(false);
+
   const sizeClasses = {
-    xs: "w-7 h-7",
-    sm: "w-9 h-9",
-    md: "w-11 h-11",
-    lg: "w-14 h-14",
-    xl: "w-20 h-20",
+    xs: "w-8 h-8",
+    sm: "w-10 h-10",
+    md: "w-12 h-12",
+    lg: "w-16 h-16",
+    xl: "w-24 h-24",
   };
 
   const textSizes = {
-    xs: "text-[14px]",
-    sm: "text-[16px]",
-    md: "text-[18px]",
-    lg: "text-[22px]",
-    xl: "text-[28px]",
+    xs: "text-[15px]",
+    sm: "text-[17px]",
+    md: "text-[20px]",
+    lg: "text-[24px]",
+    xl: "text-[32px]",
+  };
+
+  const iconSizes = {
+    xs: "w-4 h-4",
+    sm: "w-5 h-5",
+    md: "w-6 h-6",
+    lg: "w-8 h-8",
+    xl: "w-12 h-12",
   };
 
   return (
-    <div className={`flex items-center gap-2 select-none ${className}`}>
-      {/* 3D Green Paper-Plane Circular App Logo (Cropped to circular badge) */}
+    <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
+      {/* 3D Glossy WhatsApp Paper-Plane Badge */}
       <div
-        className={`${sizeClasses[size]} rounded-full overflow-hidden shadow-sm flex items-center justify-center flex-shrink-0 relative bg-emerald-500/10`}
+        className={`${sizeClasses[size]} rounded-2xl md:rounded-[18px] overflow-hidden flex items-center justify-center flex-shrink-0 relative shadow-[0_4px_16px_rgba(0,168,132,0.35)] ring-2 ring-[#00A884]/30 bg-gradient-to-br from-[#25D366] via-[#00A884] to-[#075E54] active:scale-95 transition-transform duration-200`}
       >
-        <img
-          src="/app-logo-full.jpg"
-          alt="ChatFlow Logo"
-          className="w-full h-full object-cover scale-[1.78] -translate-y-[6.5%] select-none pointer-events-none"
-        />
+        {!imgFailed ? (
+          <img
+            src="/app-logo-full.jpg"
+            alt="ChatFlow Logo"
+            onError={() => setImgFailed(true)}
+            className="w-full h-full object-cover scale-[1.75] -translate-y-[6%] select-none pointer-events-none drop-shadow-md"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center relative">
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent pointer-events-none" />
+            <Send className={`${iconSizes[size]} text-white fill-white/30 -rotate-12 translate-x-0.5 -translate-y-0.5 drop-shadow-md`} />
+          </div>
+        )}
       </div>
 
       {showText && (
         <span
-          className={`${textSizes[size]} font-bold tracking-tight text-black dark:text-white font-ios leading-none`}
+          className={`${textSizes[size]} font-extrabold tracking-tight text-gray-900 dark:text-white font-ios leading-none`}
         >
-          Chats
+          ChatFlow
         </span>
       )}
     </div>

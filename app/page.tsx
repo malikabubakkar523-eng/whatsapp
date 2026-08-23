@@ -17,6 +17,7 @@ import { ReportModal } from "@/components/reports/ReportModal";
 import { AvatarLightbox } from "@/components/ui/AvatarLightbox";
 import { QRCodeModal } from "@/components/qr/QRCodeModal";
 import { StatusList } from "@/components/status/StatusList";
+import { WebRTCCallModal, ActiveCallData } from "@/components/call/WebRTCCallModal";
 import { ConversationType, MessageTypeData, NotificationType, MessageType } from "@/types";
 import { getSocket } from "@/lib/socket";
 import { Avatar } from "@/components/ui/Avatar";
@@ -77,6 +78,7 @@ export default function AppDashboard() {
     bio?: string | null;
     isOnline?: boolean;
   } | null>(null);
+  const [activeWebRTCCall, setActiveWebRTCCall] = useState<ActiveCallData | null>(null);
 
   const activeConvRef = useRef<string | null>(null);
   activeConvRef.current = selectedConversationId;
@@ -325,6 +327,27 @@ export default function AppDashboard() {
       }
     };
 
+    const handleIncomingCall = (data: any) => {
+      if (!data?.caller) return;
+      playMessageSound();
+      setActiveWebRTCCall({
+        callId: data.callId || `call_${Date.now()}`,
+        conversationId: data.conversationId || "",
+        otherUser: {
+          id: data.caller.userId,
+          displayName: data.caller.displayName,
+          username: data.caller.username,
+          avatar: data.caller.avatar,
+        },
+        callType: data.callType || "VOICE",
+        isIncoming: true,
+      });
+    };
+
+    const handleCallEnded = () => {
+      setActiveWebRTCCall(null);
+    };
+
     socket.on("user:status", handleStatus);
     socket.on("user:profile_updated", handleProfileUpdated);
     socket.on("message:new", handleNewMessage);
@@ -333,6 +356,8 @@ export default function AppDashboard() {
     socket.on("message:deleted", handleDeleted);
     socket.on("typing:start", handleTypingStart);
     socket.on("typing:stop", handleTypingStop);
+    socket.on("call:incoming", handleIncomingCall);
+    socket.on("call:ended", handleCallEnded);
 
     return () => {
       socket.off("user:status", handleStatus);
@@ -343,8 +368,65 @@ export default function AppDashboard() {
       socket.off("message:deleted", handleDeleted);
       socket.off("typing:start", handleTypingStart);
       socket.off("typing:stop", handleTypingStop);
+      socket.off("call:incoming", handleIncomingCall);
+      socket.off("call:ended", handleCallEnded);
     };
   }, [user, fetchConversations, updateProfile]);
+
+  // Periodic background auto-sync (Every 3s for Vercel Serverless / Multi-device sync)
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(async () => {
+      // 1. Sync conversations
+      try {
+        const res = await fetch("/api/conversations");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.conversations) {
+            setConversations(data.conversations);
+          }
+        }
+      } catch (e) {}
+
+      // 2. Sync active conversation messages
+      if (activeConvRef.current) {
+        try {
+          const mRes = await fetch(`/api/conversations/${activeConvRef.current}/messages`);
+          if (mRes.ok) {
+            const mData = await mRes.json();
+            if (mData.messages && mData.messages.length > 0) {
+              setMessages(mData.messages);
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 3. Check for incoming WebRTC calls via REST fallback
+      try {
+        const cRes = await fetch("/api/calls/signal");
+        if (cRes.ok) {
+          const cData = await cRes.json();
+          if (cData.incoming && !activeWebRTCCall) {
+            playMessageSound();
+            setActiveWebRTCCall({
+              callId: cData.incoming.callId,
+              conversationId: cData.incoming.conversationId,
+              otherUser: {
+                id: cData.incoming.caller.userId,
+                displayName: cData.incoming.caller.displayName,
+                username: cData.incoming.caller.username,
+                avatar: cData.incoming.caller.avatar,
+              },
+              callType: cData.incoming.callType || "VOICE",
+              isIncoming: true,
+            });
+          }
+        }
+      } catch (e) {}
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [user, activeWebRTCCall]);
 
   // Actions
   const handleStartChatWithUser = async (target: { id?: string; username: string }) => {
@@ -375,8 +457,61 @@ export default function AppDashboard() {
     id?: string;
     username: string;
     callType: "VOICE" | "VIDEO";
+    displayName?: string;
+    avatar?: string | null;
   }) => {
-    await handleStartChatWithUser({ id: callTarget.id, username: callTarget.username });
+    let convId = selectedConversationId;
+    if (!convId) {
+      const existing = conversations.find(
+        (c) => !c.isGroup && c.otherUser?.username.toLowerCase() === callTarget.username.toLowerCase()
+      );
+      if (existing) {
+        convId = existing.id;
+      }
+    }
+
+    const otherUser = {
+      id: callTarget.id || callTarget.username,
+      displayName: callTarget.displayName || callTarget.username,
+      username: callTarget.username,
+      avatar: callTarget.avatar,
+    };
+
+    setActiveWebRTCCall({
+      callId: `call_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      conversationId: convId || "",
+      otherUser,
+      callType: callTarget.callType,
+      isIncoming: false,
+    });
+  };
+
+  const handleEndWebRTCCall = async (durationSeconds: number, status: "COMPLETED" | "MISSED" | "REJECTED") => {
+    if (!activeWebRTCCall) return;
+    const callData = activeWebRTCCall;
+    setActiveWebRTCCall(null);
+
+    if (callData.conversationId) {
+      try {
+        await fetch("/api/calls", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversationId: callData.conversationId,
+            callType: callData.callType,
+            status: status === "REJECTED" ? "MISSED" : status,
+            durationSeconds,
+          }),
+        });
+
+        const icon = callData.callType === "VIDEO" ? "🎥 Video call" : "📞 Voice call";
+        const durText = durationSeconds > 0 ? ` (${Math.floor(durationSeconds / 60)}m ${durationSeconds % 60}s)` : "";
+        handleSendMessage({
+          content: `${icon} • ${status === "MISSED" ? "Missed" : status === "REJECTED" ? "Declined" : "Ended"}${durText}`,
+          type: "CALL",
+        });
+      } catch (e) {}
+    }
   };
 
   const handleCreateGroup = async (groupData: {
@@ -741,6 +876,18 @@ export default function AppDashboard() {
           isLoadingMessages={isLoadingMessages}
           onBackToChatList={() => setSelectedConversationId(null)}
           onOpenLightbox={(target) => setLightboxTarget(target)}
+          onStartCall={(data) => {
+            if (selectedConversation) {
+              const other = selectedConversation.otherUser;
+              handleStartCallWithUser({
+                id: other?.id,
+                username: other?.username || "",
+                displayName: other?.displayName,
+                avatar: other?.avatar,
+                callType: data.callType,
+              });
+            }
+          }}
         />
       </div>
 
@@ -842,8 +989,15 @@ export default function AppDashboard() {
         </nav>
       )}
 
-
       {/* Modals */}
+      {/* Real-time WebRTC Voice & Video Calling Modal */}
+      {activeWebRTCCall && (
+        <WebRTCCallModal
+          callData={activeWebRTCCall}
+          onEndCall={handleEndWebRTCCall}
+        />
+      )}
+
       {showSettings && (
         <SettingsModal
           onClose={() => setShowSettings(false)}

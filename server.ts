@@ -289,6 +289,60 @@ app.prepare().then(() => {
       io.emit("user:profile_updated", data);
     });
 
+    // ============================================================
+    // Real-Time WebRTC Voice & Video Calling Events
+    // ============================================================
+    socket.on("call:invite", (data: {
+      callId: string;
+      conversationId: string;
+      targetUserId: string;
+      callType: "VOICE" | "VIDEO";
+      caller: {
+        userId: string;
+        displayName: string;
+        username: string;
+        avatar?: string | null;
+      };
+    }) => {
+      if (!data?.targetUserId) return;
+      // Emit incoming call event to target user's personal room
+      io.to(`user:${data.targetUserId}`).emit("call:incoming", data);
+      if (data.conversationId) {
+        socket.to(`conv:${data.conversationId}`).emit("call:incoming", data);
+      }
+    });
+
+    socket.on("call:accept", (data: { callId: string; callerId: string; targetUserId: string }) => {
+      if (data?.callerId) {
+        io.to(`user:${data.callerId}`).emit("call:accepted", data);
+      }
+    });
+
+    socket.on("call:reject", (data: { callId: string; callerId: string; targetUserId: string }) => {
+      if (data?.callerId) {
+        io.to(`user:${data.callerId}`).emit("call:rejected", data);
+      }
+      if (data?.targetUserId) {
+        io.to(`user:${data.targetUserId}`).emit("call:ended", data);
+      }
+    });
+
+    socket.on("call:end", (data: { callId: string; otherUserId: string }) => {
+      if (data?.otherUserId) {
+        io.to(`user:${data.otherUserId}`).emit("call:ended", data);
+      }
+    });
+
+    socket.on("call:signal", (data: { targetUserId: string; callId: string; signal: any }) => {
+      if (data?.targetUserId) {
+        io.to(`user:${data.targetUserId}`).emit("call:signal", {
+          callId: data.callId,
+          signal: data.signal,
+          senderId: socket.data.user?.userId,
+        });
+      }
+    });
+
     // Disconnect handler
     socket.on("disconnect", async () => {
       const user = socket.data.user;

@@ -357,8 +357,8 @@ export function ChatList({
 
           {/* Header Middle (Centered Logo & Title) */}
           <div className="flex items-center justify-center gap-2 flex-1">
-            <AppLogo size="sm" showText={false} />
-            <span className="text-[19px] font-bold tracking-tight text-black dark:text-white font-ios leading-none">
+            <AppLogo size="md" showText={false} />
+            <span className="text-[20px] font-extrabold tracking-tight text-black dark:text-white font-ios leading-none">
               {viewingArchived ? "Archived" : viewingLocked ? "Locked Chats 🔒" : "Chats"}
             </span>
           </div>
@@ -940,6 +940,15 @@ export function ChatList({
           </div>
         </div>
       )}
+      {/* Floating Glowing Meta AI Action Button (Glued in place, never scrolls) */}
+      <button
+        type="button"
+        onClick={onOpenNewChat}
+        title="Chat with Meta AI"
+        className="fixed right-4 bottom-[76px] md:bottom-6 z-30 w-14 h-14 rounded-full bg-gradient-to-tr from-[#008069] via-[#00A884] to-[#25D366] text-white shadow-[0_4px_20px_rgba(0,168,132,0.5)] hover:shadow-[0_6px_28px_rgba(0,168,132,0.7)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all group cursor-pointer"
+      >
+        <Sparkles className="w-6 h-6 text-white group-hover:rotate-12 transition-transform" />
+      </button>
     </div>
   );
 }

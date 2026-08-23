@@ -7,7 +7,13 @@ import { formatUsername } from "@/utils/username";
 import { format, isToday, isYesterday } from "date-fns";
 
 interface CallsListProps {
-  onStartCallWithUser: (user: { id?: string; username: string; callType: "VOICE" | "VIDEO" }) => void;
+  onStartCallWithUser: (user: {
+    id?: string;
+    username: string;
+    callType: "VOICE" | "VIDEO";
+    displayName?: string;
+    avatar?: string | null;
+  }) => void;
   onOpenFindPeople: () => void;
 }
 
@@ -196,10 +202,12 @@ export function CallsList({ onStartCallWithUser, onOpenFindPeople }: CallsListPr
                         onStartCallWithUser({
                           id: call.contact?.id,
                           username: call.contact?.username,
+                          displayName: call.contact?.displayName,
+                          avatar: call.contact?.avatar,
                           callType: "VOICE",
                         })
                       }
-                      className="p-2 rounded-full text-[#007AFF] dark:text-[#0A84FF] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all"
+                      className="p-2 rounded-full text-[#007AFF] dark:text-[#0A84FF] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all cursor-pointer"
                       title="Voice Call"
                     >
                       <Phone className="w-5 h-5 stroke-[2]" />
@@ -211,10 +219,12 @@ export function CallsList({ onStartCallWithUser, onOpenFindPeople }: CallsListPr
                         onStartCallWithUser({
                           id: call.contact?.id,
                           username: call.contact?.username,
+                          displayName: call.contact?.displayName,
+                          avatar: call.contact?.avatar,
                           callType: "VIDEO",
                         })
                       }
-                      className="p-2 rounded-full text-[#007AFF] dark:text-[#0A84FF] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all"
+                      className="p-2 rounded-full text-[#007AFF] dark:text-[#0A84FF] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all cursor-pointer"
                       title="Video Call"
                     >
                       <Video className="w-5 h-5 stroke-[2]" />
