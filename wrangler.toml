@@ -1,0 +1,14 @@
+name = "chatflow"
+main = "server.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare D1 Database Binding
+[[d1_databases]]
+binding = "DB"
+database_name = "chatflow-db"
+database_id = "d4626968-e5c1-4ea0-acc5-c2c5ee09f3a2"
+migrations_dir = "migrations"
+
+[vars]
+NEXT_PUBLIC_APP_URL = "https://chatflow.pages.dev"
