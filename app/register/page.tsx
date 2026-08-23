@@ -150,8 +150,23 @@ export default function RegisterPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Check size limit: 10MB for avatar
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Photo size must be less than 10MB");
+      return;
+    }
+
     setIsUploadingPhoto(true);
     setError("");
+
+    // Immediate instant preview using FileReader
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setAvatar(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
 
     try {
       const formData = new FormData();
@@ -165,11 +180,9 @@ export default function RegisterPage() {
       const data = await res.json();
       if (res.ok && data.url) {
         setAvatar(data.url);
-      } else {
-        setError(data.error || "Failed to upload photo");
       }
     } catch (err) {
-      setError("Network error while uploading photo");
+      console.warn("Photo upload warning, using local preview:", err);
     } finally {
       setIsUploadingPhoto(false);
     }
