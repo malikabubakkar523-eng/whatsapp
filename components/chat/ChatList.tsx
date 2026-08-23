@@ -70,6 +70,7 @@ interface ChatListProps {
   onViewProfile?: (username: string) => void;
   onBlockUser?: (userId: string) => void;
   onOpenSettings?: () => void;
+  onOpenMetaAI?: () => void;
   currentUser?: any;
 }
 
@@ -85,6 +86,7 @@ export function ChatList({
   onViewProfile,
   onBlockUser,
   onOpenSettings,
+  onOpenMetaAI,
   currentUser,
 }: ChatListProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -350,9 +352,9 @@ export function ChatList({
                 <span>Chats</span>
               </button>
             ) : (
-              <div className="flex items-center gap-2.5">
-                <AppLogo size="sm" showText={false} />
-                <span className="text-[21px] font-extrabold tracking-tight text-black dark:text-white font-ios leading-none">
+              <div className="flex items-center gap-3">
+                <AppLogo size="md" showText={false} className="shadow-md hover:scale-105 transition-transform" />
+                <span className="text-[22px] font-extrabold tracking-tight text-black dark:text-white font-ios leading-none">
                   Chats
                 </span>
               </div>
@@ -1083,12 +1085,18 @@ export function ChatList({
           </div>
         </div>
       )}
-      {/* Floating Glowing Meta AI Action Button (Glued in place, never scrolls) */}
+      {/* Floating Glowing Meta AI Action Button (Glued in place, opens Meta AI directly) */}
       <button
         type="button"
-        onClick={onOpenNewChat}
-        title="Chat with Meta AI"
-        className="fixed right-4 bottom-[76px] md:bottom-6 z-30 w-14 h-14 rounded-full bg-gradient-to-tr from-[#008069] via-[#00A884] to-[#25D366] text-white shadow-[0_4px_20px_rgba(0,168,132,0.5)] hover:shadow-[0_6px_28px_rgba(0,168,132,0.7)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all group cursor-pointer"
+        onClick={() => {
+          if (onOpenMetaAI) {
+            onOpenMetaAI();
+          } else {
+            onOpenNewChat();
+          }
+        }}
+        title="Chat with Meta AI Assistant"
+        className="fixed right-4 bottom-[76px] md:bottom-6 z-30 w-14 h-14 rounded-full bg-gradient-to-tr from-[#008069] via-[#00A884] to-[#25D366] text-white shadow-[0_4px_20px_rgba(0,168,132,0.5)] hover:shadow-[0_6px_28px_rgba(0,168,132,0.7)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all group cursor-pointer ring-2 ring-white/20"
       >
         <Sparkles className="w-6 h-6 text-white group-hover:rotate-12 transition-transform" />
       </button>

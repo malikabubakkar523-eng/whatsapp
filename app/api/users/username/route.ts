@@ -25,14 +25,16 @@ export async function PATCH(req: NextRequest) {
 
     const cleanUser = validation.cleaned;
 
-    // Check if taken by another user
-    const existing = await prisma.profile.findUnique({
-      where: { username: cleanUser },
+    // Check if taken by another user (case-insensitive)
+    const existing = await prisma.profile.findFirst({
+      where: {
+        username: { equals: cleanUser, mode: "insensitive" },
+      },
     });
 
     if (existing && existing.userId !== session.userId) {
       return NextResponse.json(
-        { error: `Username @${cleanUser} is already taken` },
+        { error: `Username @${cleanUser} is already taken. Please choose a different username.` },
         { status: 409 }
       );
     }

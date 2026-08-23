@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { MessageSquare, Mail, ArrowRight, CheckCircle2, ArrowLeft } from "lucide-react";
 
+import { AppLogo } from "@/components/ui/AppLogo";
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -19,9 +21,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-chat-bg-light dark:bg-chat-bg-dark flex flex-col justify-center items-center p-4 selection:bg-brand-500 selection:text-white">
       <div className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-8 shadow-2xl space-y-6">
         <div className="flex flex-col items-center text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
-            <MessageSquare className="w-6 h-6 fill-white/20" />
-          </div>
+          <AppLogo size="lg" showText={false} className="shadow-lg hover:scale-105 transition-transform" />
           <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
             Reset Password
           </h1>

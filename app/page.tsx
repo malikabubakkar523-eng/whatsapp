@@ -891,6 +891,7 @@ export default function AppDashboard() {
             onViewProfile={(u) => setViewProfileUsername(u)}
             onBlockUser={handleBlockUser}
             onOpenSettings={() => setShowSettings(true)}
+            onOpenMetaAI={() => handleStartChatWithUser({ username: "meta_ai" })}
             currentUser={user}
           />
         )}

@@ -516,9 +516,10 @@ export function ChatArea({
                 src={avatar}
                 name={title || undefined}
                 username={username || undefined}
-                size="sm"
+                size="md"
                 isOnline={isSelf ? true : !!isOnline}
                 showOnlineIndicator={!isGroup}
+                className="ring-2 ring-[#00A884]/20 dark:ring-[#00A884]/30"
                 onClick={(e) => {
                   e.stopPropagation();
                   onOpenLightbox?.({

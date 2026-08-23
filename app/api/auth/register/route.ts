@@ -48,13 +48,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if username already exists
-    const existingUsername = await prisma.profile.findUnique({
-      where: { username: cleanUser },
+    // Check if username already exists (strictly case-insensitive)
+    const existingUsername = await prisma.profile.findFirst({
+      where: {
+        username: { equals: cleanUser, mode: "insensitive" },
+      },
     });
     if (existingUsername) {
       return NextResponse.json(
-        { error: `Username @${cleanUser} is already taken` },
+        { error: `Username @${cleanUser} is already taken. Please choose another username.` },
         { status: 409 }
       );
     }

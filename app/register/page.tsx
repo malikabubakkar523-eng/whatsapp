@@ -21,6 +21,7 @@ import {
 import { useAuth } from "@/components/auth/AuthContext";
 import { validateUsername, formatUsername } from "@/utils/username";
 import { Avatar } from "@/components/ui/Avatar";
+import { AppLogo } from "@/components/ui/AppLogo";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -268,9 +269,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md bg-white dark:bg-wa-cardDark border border-wa-borderLight dark:border-wa-borderDark rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
         {/* Top Header */}
         <div className="flex flex-col items-center text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-brand-600 flex items-center justify-center text-white shadow-lg shadow-brand-600/30">
-            <MessageSquare className="w-7 h-7 fill-white/20" />
-          </div>
+          <AppLogo size="lg" showText={false} className="shadow-lg hover:scale-105 transition-transform" />
           <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
             Create Account
           </h1>

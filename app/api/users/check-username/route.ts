@@ -120,8 +120,10 @@ export async function GET(req: NextRequest) {
     let availableSuggestions = candidates.slice(0, 4);
 
     try {
-      existing = await prisma.profile.findUnique({
-        where: { username: cleanUser },
+      existing = await prisma.profile.findFirst({
+        where: {
+          username: { equals: cleanUser, mode: "insensitive" },
+        },
       });
 
       if (existing) {
