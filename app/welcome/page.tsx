@@ -69,7 +69,7 @@ export default function WelcomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] dark:bg-[#0C1317] text-gray-900 dark:text-[#E9EDEF] flex flex-col selection:bg-[#00A884] selection:text-white transition-colors duration-200 overflow-y-auto overflow-x-hidden">
+    <div className="min-h-screen w-full bg-[#F0F2F5] dark:bg-[#0C1317] text-gray-900 dark:text-[#E9EDEF] flex flex-col selection:bg-[#00A884] selection:text-white transition-colors duration-200">
       {/* ============================================================ */}
       {/* 1. FIXED MODERN HEADER                                        */}
       {/* ============================================================ */}

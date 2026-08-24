@@ -143,6 +143,12 @@ export function ChatArea({
   const [isCallMuted, setIsCallMuted] = useState(false);
   const [isCallVideoDisabled, setIsCallVideoDisabled] = useState(false);
 
+  // Message Selection Header State
+  const [selectedMessage, setSelectedMessage] = useState<MessageTypeData | null>(null);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [showReactBarInHeader, setShowReactBarInHeader] = useState(false);
+  const [copiedFeedback, setCopiedFeedback] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messageContainerRef = useRef<HTMLDivElement | null>(null);
   const previousScrollHeightRef = useRef<number>(0);
@@ -518,129 +524,265 @@ export function ChatArea({
 
       {/* Main Messaging Area */}
       <div className="flex-1 flex flex-col h-full min-w-0">
-        {/* iOS Top Navigation Bar */}
-        <header className="h-[60px] px-3 bg-[#F6F6F6]/90 dark:bg-[#1E1E1E]/90 ios-blur border-b border-black/[0.08] dark:border-white/[0.08] text-black dark:text-white flex items-center justify-between z-20 select-none flex-shrink-0">
-          <div className="flex items-center gap-1.5 min-w-0">
-            {/* iOS Back Button with chevron */}
-            {onBackToChatList && (
-              <button
-                type="button"
-                onClick={onBackToChatList}
-                className="flex items-center text-[#007AFF] dark:text-[#0A84FF] -ml-1 pr-1 py-1 hover:opacity-75 active:opacity-40 transition-opacity font-normal text-[17px]"
-                title="Back"
-              >
-                <ChevronLeft className="w-6 h-6 -mr-1 stroke-[2.5]" />
-                <span className="hidden sm:inline font-ios">Chats</span>
-              </button>
-            )}
+        {/* Top Header / Selection Action Bar */}
+        <header className={`h-[60px] px-3 transition-colors duration-200 ios-blur border-b border-black/[0.08] dark:border-white/[0.08] text-black dark:text-white flex items-center justify-between z-20 select-none flex-shrink-0 ${
+          selectedMessage
+            ? "bg-[#00A884]/15 dark:bg-[#00A884]/20 border-[#00A884]/30"
+            : "bg-[#F6F6F6]/90 dark:bg-[#1E1E1E]/90"
+        }`}>
+          {selectedMessage ? (
+            /* ============================================================ */
+            /* 1. SELECTION ACTION BAR IN HEADER (WhatsApp Style)          */
+            /* ============================================================ */
+            <div className="flex items-center justify-between w-full animate-fade-in">
+              {/* Left: Close selection & Count */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedMessage(null);
+                    setShowReactBarInHeader(false);
+                  }}
+                  className="p-2 rounded-full hover:bg-black/[0.08] dark:hover:bg-white/[0.1] active:scale-95 transition-all text-[#8E8E93] hover:text-black dark:hover:text-white cursor-pointer"
+                  title="Deselect"
+                >
+                  <X className="w-5 h-5 stroke-[2.5]" />
+                </button>
 
-            {/* Contact Avatar & Header Meta */}
-            <button
-              type="button"
-              onClick={() => {
-                if (username && !isSelf && onViewProfile) onViewProfile(username);
-                else setShowRightDrawer(!showRightDrawer);
-              }}
-              className="flex items-center gap-2.5 text-left group min-w-0 focus:outline-none"
-            >
-              <Avatar
-                src={avatar}
-                name={title || undefined}
-                username={username || undefined}
-                size="md"
-                isOnline={isSelf ? true : !!isOnline}
-                showOnlineIndicator={!isGroup}
-                className="ring-2 ring-[#00A884]/20 dark:ring-[#00A884]/30"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenLightbox?.({
-                    avatar,
-                    name: title || "User",
-                    username,
-                    bio: conversation.otherUser?.bio,
-                    isOnline: !!isOnline,
-                  });
-                }}
-              />
-
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <h2 className="font-semibold text-[16px] text-black dark:text-white truncate font-ios leading-tight">
-                    {title}
-                  </h2>
-                  {isMetaAI && (
-                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r from-[#00D2FF]/20 via-[#9B51E0]/20 to-[#FF2A6D]/20 text-[#007AFF] dark:text-[#38BDF8]">
-                      AI ✨
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-[16px] text-black dark:text-white font-ios">
+                    1 Selected
+                  </span>
+                  {selectedMessage.isPinned && (
+                    <span className="px-2 py-0.5 rounded-full bg-[#00A884]/20 text-[#00A884] dark:text-[#34D399] text-[11px] font-bold flex items-center gap-1">
+                      <Pin className="w-3 h-3 fill-current" /> Pinned
                     </span>
                   )}
                 </div>
-
-                {isTyping ? (
-                  <p className="text-[12px] font-medium text-[#00A884] dark:text-[#34D399] flex items-center gap-1 leading-none mt-0.5">
-                    <span>
-                      {typingUsernames.length > 1
-                        ? `${typingUsernames.join(", ")} are typing`
-                        : `${typingUsernames[0] || "typing"}...`}
-                    </span>
-                    <span className="flex gap-0.5">
-                      <span className="typing-dot" />
-                      <span className="typing-dot" />
-                      <span className="typing-dot" />
-                    </span>
-                  </p>
-                ) : isMetaAI ? (
-                  <p className="text-[12px] text-transparent bg-clip-text bg-gradient-to-r from-[#00D2FF] to-[#9B51E0] font-semibold leading-none mt-0.5">
-                    Always online • Meta AI
-                  </p>
-                ) : isSelf ? (
-                  <p className="text-[12px] text-[#8E8E93] truncate leading-none mt-0.5">
-                    Message yourself • Saved notes 📌
-                  </p>
-                ) : isGroup ? (
-                  <p className="text-[12px] text-[#8E8E93] truncate leading-none mt-0.5">
-                    {conversation.members.length} members
-                  </p>
-                ) : isOnline ? (
-                  <p className="text-[12px] text-[#00A884] dark:text-[#34D399] font-medium flex items-center gap-1.5 leading-none mt-0.5 animate-fade-in">
-                    <span className="w-2 h-2 rounded-full bg-[#00A884] dark:bg-[#34D399] animate-pulse shadow-[0_0_8px_rgba(0,168,132,0.6)]" />
-                    <span>online</span>
-                  </p>
-                ) : (
-                  <p className="text-[12px] text-[#8E8E93] truncate font-normal leading-none mt-0.5 animate-fade-in">
-                    {formatLastSeen(conversation.otherUser?.lastSeen)}
-                  </p>
-                )}
               </div>
-            </button>
-          </div>
 
-          {/* Action buttons (Video Call, Voice Call, Info) styled with iOS Blue */}
-          {!isSelf && (
-            <div className="flex items-center gap-2 text-[#007AFF] dark:text-[#0A84FF]">
-              <button
-                type="button"
-                onClick={() => {
-                  if (onStartCall) onStartCall({ callType: "VIDEO" });
-                  else setActiveCallModal("VIDEO");
-                }}
-                className="p-2 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all cursor-pointer"
-                title="Video Call"
-              >
-                <Video className="w-5 h-5 stroke-[1.9]" />
-              </button>
+              {/* Right: Actions (React, Reply, Pin, Copy, Delete) */}
+              <div className="flex items-center gap-1 sm:gap-2">
+                {/* 1. Quick React Picker */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowReactBarInHeader(!showReactBarInHeader)}
+                    className={`p-2 rounded-full hover:bg-black/[0.08] dark:hover:bg-white/[0.1] active:scale-95 transition-all cursor-pointer ${
+                      showReactBarInHeader ? "bg-[#00A884]/25 text-[#00A884] dark:text-[#34D399]" : "text-[#8E8E93] hover:text-black dark:hover:text-white"
+                    }`}
+                    title="React with emoji"
+                  >
+                    <Smile className="w-5 h-5 stroke-[2]" />
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (onStartCall) onStartCall({ callType: "VOICE" });
-                  else setActiveCallModal("VOICE");
-                }}
-                className="p-2 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all cursor-pointer"
-                title="Voice Call"
-              >
-                <Phone className="w-5 h-5 stroke-[1.9]" />
-              </button>
+                  {showReactBarInHeader && (
+                    <div className="absolute top-12 right-0 bg-white dark:bg-[#1C1C1E] border border-black/[0.1] dark:border-white/[0.12] shadow-2xl rounded-full px-3 py-1.5 flex items-center gap-2 z-50 animate-fade-in">
+                      {["👍", "❤️", "😂", "😮", "😢", "🙏", "🔥", "🎉"].map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => {
+                            onSendReaction(selectedMessage.id, emoji);
+                            setShowReactBarInHeader(false);
+                            setSelectedMessage(null);
+                          }}
+                          className="text-[20px] hover:scale-130 active:scale-95 transition-transform cursor-pointer"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Reply to Message */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReplyingTo(selectedMessage);
+                    setSelectedMessage(null);
+                  }}
+                  className="p-2 rounded-full hover:bg-black/[0.08] dark:hover:bg-white/[0.1] active:scale-95 transition-all text-[#8E8E93] hover:text-black dark:hover:text-white cursor-pointer"
+                  title="Reply to message"
+                >
+                  <Reply className="w-5 h-5 stroke-[2]" />
+                </button>
+
+                {/* 3. Pin / Unpin Message */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onPinMessage(selectedMessage.id, !selectedMessage.isPinned);
+                    setSelectedMessage((prev) => (prev ? { ...prev, isPinned: !prev.isPinned } : null));
+                  }}
+                  className={`p-2 rounded-full hover:bg-black/[0.08] dark:hover:bg-white/[0.1] active:scale-95 transition-all cursor-pointer ${
+                    selectedMessage.isPinned ? "text-[#00A884] dark:text-[#34D399]" : "text-[#8E8E93] hover:text-black dark:hover:text-white"
+                  }`}
+                  title={selectedMessage.isPinned ? "Unpin message" : "Pin message"}
+                >
+                  <Pin className={`w-5 h-5 stroke-[2] ${selectedMessage.isPinned ? "fill-current" : ""}`} />
+                </button>
+
+                {/* 4. Copy Message Text */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedMessage.content) {
+                      navigator.clipboard.writeText(selectedMessage.content);
+                      setCopiedFeedback(true);
+                      setTimeout(() => setCopiedFeedback(false), 1800);
+                    }
+                  }}
+                  className="p-2 rounded-full hover:bg-black/[0.08] dark:hover:bg-white/[0.1] active:scale-95 transition-all text-[#8E8E93] hover:text-black dark:hover:text-white cursor-pointer"
+                  title="Copy text"
+                >
+                  {copiedFeedback ? (
+                    <Check className="w-5 h-5 text-[#00A884] stroke-[2.5]" />
+                  ) : (
+                    <Copy className="w-5 h-5 stroke-[2]" />
+                  )}
+                </button>
+
+                {/* 5. Delete Message Button (Opens confirmation dialog) */}
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirmModal(true)}
+                  className="p-2 rounded-full hover:bg-[#FF3B30]/15 active:scale-95 transition-all text-[#FF3B30] cursor-pointer"
+                  title="Delete message"
+                >
+                  <Trash2 className="w-5 h-5 stroke-[2]" />
+                </button>
+              </div>
             </div>
+          ) : (
+            /* ============================================================ */
+            /* 2. REGULAR CONTACT / GROUP HEADER                            */
+            /* ============================================================ */
+            <>
+              <div className="flex items-center gap-1.5 min-w-0">
+                {/* iOS Back Button with chevron */}
+                {onBackToChatList && (
+                  <button
+                    type="button"
+                    onClick={onBackToChatList}
+                    className="flex items-center text-[#007AFF] dark:text-[#0A84FF] -ml-1 pr-1 py-1 hover:opacity-75 active:opacity-40 transition-opacity font-normal text-[17px]"
+                    title="Back"
+                  >
+                    <ChevronLeft className="w-6 h-6 -mr-1 stroke-[2.5]" />
+                    <span className="hidden sm:inline font-ios">Chats</span>
+                  </button>
+                )}
+
+                {/* Contact Avatar & Header Meta */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (username && !isSelf && onViewProfile) onViewProfile(username);
+                    else setShowRightDrawer(!showRightDrawer);
+                  }}
+                  className="flex items-center gap-2.5 text-left group min-w-0 focus:outline-none"
+                >
+                  <Avatar
+                    src={avatar}
+                    name={title || undefined}
+                    username={username || undefined}
+                    size="md"
+                    isOnline={isSelf ? true : !!isOnline}
+                    showOnlineIndicator={!isGroup}
+                    className="ring-2 ring-[#00A884]/20 dark:ring-[#00A884]/30"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenLightbox?.({
+                        avatar,
+                        name: title || "User",
+                        username,
+                        bio: conversation.otherUser?.bio,
+                        isOnline: !!isOnline,
+                      });
+                    }}
+                  />
+
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <h2 className="font-semibold text-[16px] text-black dark:text-white truncate font-ios leading-tight">
+                        {title}
+                      </h2>
+                      {isMetaAI && (
+                        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r from-[#00D2FF]/20 via-[#9B51E0]/20 to-[#FF2A6D]/20 text-[#007AFF] dark:text-[#38BDF8]">
+                          AI ✨
+                        </span>
+                      )}
+                    </div>
+
+                    {isTyping ? (
+                      <p className="text-[12px] font-medium text-[#00A884] dark:text-[#34D399] flex items-center gap-1 leading-none mt-0.5">
+                        <span>
+                          {typingUsernames.length > 1
+                            ? `${typingUsernames.join(", ")} are typing`
+                            : `${typingUsernames[0] || "typing"}...`}
+                        </span>
+                        <span className="flex gap-0.5">
+                          <span className="typing-dot" />
+                          <span className="typing-dot" />
+                          <span className="typing-dot" />
+                        </span>
+                      </p>
+                    ) : isMetaAI ? (
+                      <p className="text-[12px] text-transparent bg-clip-text bg-gradient-to-r from-[#00D2FF] to-[#9B51E0] font-semibold leading-none mt-0.5">
+                        Always online • Meta AI
+                      </p>
+                    ) : isSelf ? (
+                      <p className="text-[12px] text-[#8E8E93] truncate leading-none mt-0.5">
+                        Message yourself • Saved notes 📌
+                      </p>
+                    ) : isGroup ? (
+                      <p className="text-[12px] text-[#8E8E93] truncate leading-none mt-0.5">
+                        {conversation.members.length} members
+                      </p>
+                    ) : isOnline ? (
+                      <p className="text-[12px] text-[#00A884] dark:text-[#34D399] font-medium flex items-center gap-1.5 leading-none mt-0.5 animate-fade-in">
+                        <span className="w-2 h-2 rounded-full bg-[#00A884] dark:bg-[#34D399] animate-pulse shadow-[0_0_8px_rgba(0,168,132,0.6)]" />
+                        <span>online</span>
+                      </p>
+                    ) : (
+                      <p className="text-[12px] text-[#8E8E93] truncate font-normal leading-none mt-0.5 animate-fade-in">
+                        {formatLastSeen(conversation.otherUser?.lastSeen)}
+                      </p>
+                    )}
+                  </div>
+                </button>
+              </div>
+
+              {/* Action buttons (Video Call, Voice Call, Info) */}
+              {!isSelf && (
+                <div className="flex items-center gap-2 text-[#007AFF] dark:text-[#0A84FF]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onStartCall) onStartCall({ callType: "VIDEO" });
+                      else setActiveCallModal("VIDEO");
+                    }}
+                    className="p-2 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all cursor-pointer"
+                    title="Video Call"
+                  >
+                    <Video className="w-5 h-5 stroke-[1.9]" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onStartCall) onStartCall({ callType: "VOICE" });
+                      else setActiveCallModal("VOICE");
+                    }}
+                    className="p-2 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-95 transition-all cursor-pointer"
+                    title="Voice Call"
+                  >
+                    <Phone className="w-5 h-5 stroke-[1.9]" />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </header>
 
@@ -748,19 +890,37 @@ export function ChatArea({
                     )}
 
                     {/* Bubble Container */}
-                    <div className="relative max-w-[85%] sm:max-w-[72%]">
+                    <div
+                      onClick={() => {
+                        if (selectedMessage?.id === msg.id) {
+                          setSelectedMessage(null);
+                        } else {
+                          setSelectedMessage(msg);
+                        }
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setSelectedMessage(msg);
+                      }}
+                      className={`relative max-w-[85%] sm:max-w-[72%] cursor-pointer transition-all duration-150 rounded-[20px] ${
+                        selectedMessage?.id === msg.id
+                          ? "ring-2 ring-[#00A884] dark:ring-[#25D366] shadow-lg shadow-[#00A884]/20 scale-[1.01]"
+                          : ""
+                      }`}
+                    >
                       {/* Floating iOS Quick Reactions & Context Trigger */}
                       <div
                         className={`absolute top-0 -translate-y-1/2 ${
                           isMine ? "right-0" : "left-0"
                         } hidden group-hover:flex items-center gap-1 bg-white/95 dark:bg-[#1C1C1E]/95 ios-blur border border-black/[0.08] dark:border-white/[0.08] shadow-md rounded-full px-2 py-1 z-20 animate-fade-in`}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => (
                           <button
                             key={emoji}
                             type="button"
                             onClick={() => onSendReaction(msg.id, emoji)}
-                            className="text-[14px] hover:scale-125 active:scale-95 transition-transform px-0.5"
+                            className="text-[14px] hover:scale-125 active:scale-95 transition-transform px-0.5 cursor-pointer"
                           >
                             {emoji}
                           </button>
@@ -768,10 +928,22 @@ export function ChatArea({
 
                         <div className="h-3 w-[1px] bg-black/10 dark:bg-white/10 mx-0.5" />
 
+                        {/* Select Message Icon */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedMessage(msg)}
+                          className={`p-1 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors ${
+                            selectedMessage?.id === msg.id ? "text-[#00A884]" : "text-[#8E8E93] hover:text-black dark:hover:text-white"
+                          }`}
+                          title="Select Message"
+                        >
+                          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => setReplyingTo(msg)}
-                          className="p-1 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-[#8E8E93] hover:text-black dark:hover:text-white"
+                          className="p-1 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-[#8E8E93] hover:text-black dark:hover:text-white cursor-pointer"
                           title="Reply"
                         >
                           <Reply className="w-3.5 h-3.5 stroke-[2]" />
@@ -780,22 +952,23 @@ export function ChatArea({
                         <button
                           type="button"
                           onClick={() => navigator.clipboard.writeText(msg.content)}
-                          className="p-1 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-[#8E8E93] hover:text-black dark:hover:text-white"
+                          className="p-1 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-[#8E8E93] hover:text-black dark:hover:text-white cursor-pointer"
                           title="Copy"
                         >
                           <Copy className="w-3.5 h-3.5 stroke-[2]" />
                         </button>
 
-                        {isMine && (
-                          <button
-                            type="button"
-                            onClick={() => onDeleteMessage(msg.id, true)}
-                            className="p-1 rounded-full hover:bg-[#FF3B30]/10 text-[#FF3B30]"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 stroke-[2]" />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedMessage(msg);
+                            setShowDeleteConfirmModal(true);
+                          }}
+                          className="p-1 rounded-full hover:bg-[#FF3B30]/10 text-[#FF3B30] cursor-pointer"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 stroke-[2]" />
+                        </button>
                       </div>
 
                       {/* WhatsApp iOS Message Bubble */}
@@ -804,7 +977,7 @@ export function ChatArea({
                           isMine
                             ? "bg-[#D9FDD3] dark:bg-[#005C4B] text-black dark:text-white bubble-sent-ios"
                             : "bg-white dark:bg-[#202C33] text-black dark:text-white bubble-recv-ios"
-                        }`}
+                        } ${selectedMessage?.id === msg.id ? "border border-[#00A884]/40" : ""}`}
                       >
                         {/* Quoted Reply Card */}
                         {msg.replyTo && (
@@ -1582,14 +1755,69 @@ export function ChatArea({
         </div>
       )}
 
-      {/* WhatsApp Media Studio Editor & Multi-Send Preview Modal */}
-      {mediaStudioFiles && mediaStudioFiles.length > 0 && (
-        <MediaStudioModal
-          isOpen={true}
-          initialFiles={mediaStudioFiles}
-          onClose={() => setMediaStudioFiles(null)}
-          onSend={handleSendMediaStudio}
-        />
+      {/* WhatsApp Style Delete Message Confirmation Modal */}
+      {showDeleteConfirmModal && selectedMessage && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setShowDeleteConfirmModal(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-white dark:bg-[#1C1C1E] rounded-[24px] overflow-hidden shadow-2xl p-6 border border-black/[0.08] dark:border-white/[0.1] animate-fade-in text-center space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 rounded-full bg-[#FF3B30]/15 text-[#FF3B30] flex items-center justify-center mx-auto shadow-sm">
+              <Trash2 className="w-7 h-7 stroke-[2]" />
+            </div>
+
+            <div>
+              <h3 className="text-[18px] font-bold text-black dark:text-white font-ios">
+                Delete Message?
+              </h3>
+              <p className="text-[13px] text-[#8E8E93] mt-1.5 leading-relaxed">
+                {selectedMessage.senderId === currentUserId
+                  ? "Delete this message for everyone in the chat, or just remove it from your device?"
+                  : "This message will be removed from your chat history."}
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              {selectedMessage.senderId === currentUserId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDeleteMessage(selectedMessage.id, true);
+                    setShowDeleteConfirmModal(false);
+                    setSelectedMessage(null);
+                  }}
+                  className="w-full py-3 bg-[#FF3B30] hover:bg-[#E02D22] text-white font-bold text-[14px] rounded-[14px] shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete for Everyone
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  onDeleteMessage(selectedMessage.id, false);
+                  setShowDeleteConfirmModal(false);
+                  setSelectedMessage(null);
+                }}
+                className="w-full py-3 bg-black/[0.06] dark:bg-white/[0.08] hover:bg-black/[0.1] dark:hover:bg-white/[0.12] text-black dark:text-white font-bold text-[14px] rounded-[14px] active:scale-98 transition-all cursor-pointer"
+              >
+                Delete for Me
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirmModal(false)}
+                className="w-full py-2.5 text-[#8E8E93] hover:text-black dark:hover:text-white text-[13px] font-semibold transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

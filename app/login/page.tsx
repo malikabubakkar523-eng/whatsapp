@@ -56,13 +56,6 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white dark:bg-wa-cardDark border border-wa-borderLight dark:border-wa-borderDark rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
         {/* Top Branding */}
         <div className="flex flex-col items-center text-center space-y-2">
-          {/* Chat Illustration */}
-          <img
-            src="https://img.icons8.com/3d-fluency/94/secured-letter.png"
-            alt="Secure login"
-            className="w-20 h-20 drop-shadow-lg mb-1"
-            loading="lazy"
-          />
           <AppLogo size="lg" showText={false} className="shadow-lg hover:scale-105 transition-transform" />
           <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
             Welcome to ChatFlow
