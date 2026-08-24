@@ -710,29 +710,7 @@ export function ChatList({
         )}
       </div>
 
-      {/* Floating Meta AI Action Button (WhatsApp Style Glowing Ring FAB) */}
-      <button
-        type="button"
-        onClick={() => {
-          const aiConv = conversations.find(
-            (c) => c.otherUser?.username?.toLowerCase() === "meta_ai"
-          );
-          if (aiConv) {
-            onSelectConversation(aiConv.id);
-          } else {
-            onOpenNewChat();
-          }
-        }}
-        className="absolute right-4 bottom-5 z-30 w-[60px] h-[60px] rounded-full p-[3px] bg-gradient-to-tr from-[#00D2FF] via-[#9B51E0] to-[#FF2A6D] shadow-2xl shadow-purple-500/35 hover:scale-108 active:scale-95 transition-all flex items-center justify-center group select-none cursor-pointer"
-        title="Ask Meta AI ✨"
-      >
-        <div className="w-full h-full rounded-full bg-[#1C1C1E] dark:bg-[#161618] flex items-center justify-center relative overflow-hidden border border-white/20">
-          <span className="text-[15px] sm:text-[16px] font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-tr from-[#00D2FF] via-[#9B51E0] to-[#FF2A6D] group-hover:scale-110 transition-transform">
-            AI
-          </span>
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-        </div>
-      </button>
+
 
       {/* iOS Context Menu Action Sheet */}
       {contextMenuConv && (
@@ -1085,21 +1063,7 @@ export function ChatList({
           </div>
         </div>
       )}
-      {/* Floating Glowing Meta AI Action Button (Glued in place, opens Meta AI directly) */}
-      <button
-        type="button"
-        onClick={() => {
-          if (onOpenMetaAI) {
-            onOpenMetaAI();
-          } else {
-            onOpenNewChat();
-          }
-        }}
-        title="Chat with Meta AI Assistant"
-        className="fixed right-4 bottom-[76px] md:bottom-6 z-30 w-14 h-14 rounded-full bg-gradient-to-tr from-[#008069] via-[#00A884] to-[#25D366] text-white shadow-[0_4px_20px_rgba(0,168,132,0.5)] hover:shadow-[0_6px_28px_rgba(0,168,132,0.7)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all group cursor-pointer ring-2 ring-white/20"
-      >
-        <Sparkles className="w-6 h-6 text-white group-hover:rotate-12 transition-transform" />
-      </button>
+
     </div>
   );
 }
