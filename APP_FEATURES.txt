@@ -1,0 +1,115 @@
+================================================================================
+                    CHATFLOW / WHATSAPP WEB - COMPLETE FEATURES LIST
+================================================================================
+
+1. AUTHENTICATION & USER MANAGEMENT
+--------------------------------------------------------------------------------
+• User Registration & Login (Email / Username & Password)
+• Unique Username System (@username) with custom Display Names
+• Profile Customization (Avatar upload, Bio/About, Display Name)
+• Session Management (Secure JWT cookies & Bearer tokens)
+• Account Deletion & Logout
+• Forgot Password / Password Reset Flow
+• Real-Time Online / Offline Presence Tracking & Last Seen Timestamps
+
+
+2. REAL-TIME CHAT & MESSAGING
+--------------------------------------------------------------------------------
+• 1-on-1 Direct Messaging with instant delivery
+• Multi-Member Group Chats (Create groups, add/remove members, group info)
+• "Message Yourself" / Saved Notes & Media bookmarking
+• Ultra-Fast Real-Time Communication powered by Socket.IO
+• WhatsApp-Style Delivery Ticks:
+  - Single Grey Tick: Message Sent
+  - Double Grey Ticks: Message Delivered to recipient device
+  - Double Blue Ticks: Message Read / Opened by recipient
+• Real-time Typing Indicators ("Typing..." in chat header & chat list)
+• Message Reactions (Instant emoji reactions: 👍, ❤️, 😂, 😮, 😢, 🙏)
+• Quote / Reply to specific messages
+• Delete Messages:
+  - Delete for Me
+  - Delete for Everyone (Replaces with deleted placeholder)
+• Pin & Unpin Important Messages
+• View-Once Self-Destructing Media (Disappears after single viewing)
+• Search Messages & Filter Chats (All, Unread, Groups)
+• Archived Chats & Muted Chats
+
+
+3. RICH MEDIA, VOICE & FILE SHARING
+--------------------------------------------------------------------------------
+• Voice Notes / Audio Memos (One-click recording, waveform player, duration display)
+• Image & Photo Sharing (JPEG, PNG, WebP, GIF)
+• Video Sharing with in-chat playable video player (MP4, WebM)
+• Document & File Attachments (PDF, DOCX, ZIP, TXT, etc.)
+• Media Studio Modal (Photo cropping, captioning, preview before sending)
+• Full-screen Image & Media Lightbox Viewer
+• Integrated Emoji Picker
+
+
+4. REAL-TIME WebRTC VOICE & VIDEO CALLS
+--------------------------------------------------------------------------------
+• High-Definition 1-on-1 Voice Calling
+• High-Definition 1-on-1 Video Calling
+• Real-time Incoming Call Alert Modal with Ringtone Chime
+• In-Call Controls:
+  - Mute / Unmute Microphone
+  - Enable / Disable Camera
+  - Flip Camera
+  - Full-Screen Video Mode
+• Call Duration Timer
+• Automatic Call History & Call Logs embedded into chat bubbles
+
+
+5. 24-HOUR STORIES & STATUS (WHATSAPP STYLE)
+--------------------------------------------------------------------------------
+• Text Status with custom gradient backgrounds and typography
+• Photo & Video Status with custom text captions
+• Automatic 24-Hour Expiration
+• Instagram/WhatsApp-style Story Viewer with progress bars
+• Viewers Tracker (See list of users who viewed your status)
+• Status Likes / Emoji Reactions
+
+
+6. AI ASSISTANT (META AI)
+--------------------------------------------------------------------------------
+• Built-in AI Assistant Chatbot (Meta AI)
+• Multi-turn intelligent conversation & context awareness
+• Instant automated responses with chime notifications
+
+
+7. NOTIFICATIONS & AUDIO EFFECTS
+--------------------------------------------------------------------------------
+• Real-time In-App Notification Center with unread counter badge
+• iOS / WhatsApp Style Sound Effects:
+  - Message Sent chime
+  - Incoming Message chime
+  - Incoming Call ringtone
+• Chat Muting & Custom Notification Toggles
+
+
+8. PRIVACY & SECURITY CONTROLS
+--------------------------------------------------------------------------------
+• Privacy Settings:
+  - Last Seen Privacy (Everyone, Contacts, Nobody)
+  - Online Status Privacy (Everyone, Contacts, Nobody)
+  - Profile Picture Privacy (Everyone, Contacts, Nobody)
+  - Read Receipts Toggle (Blue Ticks On/Off)
+  - Typing Indicator Toggle (On/Off)
+• User Blocking & Unblocking
+• Reporting System (Report offensive users, messages, or groups)
+
+
+9. ADMIN PANEL & MODERATION
+--------------------------------------------------------------------------------
+• Admin Dashboard with platform analytics (User count, messages, reports)
+• User Management (Suspend, un-suspend, role updates)
+• Report Resolution System (Review and resolve user/message reports)
+
+
+10. UI / UX DESIGN & THEME
+--------------------------------------------------------------------------------
+• Modern iOS & WhatsApp Glassmorphism Design
+• Full Dark Mode & Light Mode support (Automatic System Theme Sync)
+• Micro-animations & smooth transitions
+• Fully responsive layout optimized for Desktop, Tablets, and Mobile screens
+================================================================================

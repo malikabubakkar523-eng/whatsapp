@@ -214,6 +214,15 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      try {
+        const io = (globalThis as any).io;
+        if (io) {
+          Array.from(targetUserIds).forEach((mId) => {
+            io.to(`user:${mId}`).emit("conversation:new", { conversation });
+          });
+        }
+      } catch (e) {}
+
       return NextResponse.json({ success: true, conversation });
     }
 
@@ -366,6 +375,14 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+
+    try {
+      const io = (globalThis as any).io;
+      if (io) {
+        io.to(`user:${targetUserId}`).emit("conversation:new", { conversation: newConv });
+        io.to(`user:${userId}`).emit("conversation:new", { conversation: newConv });
+      }
+    } catch (e) {}
 
     return NextResponse.json({ success: true, conversation: newConv });
   } catch (error: any) {

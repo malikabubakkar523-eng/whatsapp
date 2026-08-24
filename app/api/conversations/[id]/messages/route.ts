@@ -5,6 +5,7 @@ import { generateAIResponse, META_AI_USERNAME } from "@/lib/ai";
 import { z } from "zod";
 
 const sendMessageSchema = z.object({
+  clientMessageId: z.string().optional(),
   content: z.string().optional().default(""),
   type: z.enum(["TEXT", "IMAGE", "VIDEO", "AUDIO", "FILE", "CALL"]).optional().default("TEXT"),
   isViewOnce: z.boolean().optional().default(false),
@@ -46,7 +47,7 @@ export async function GET(
     }
 
     const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get("limit") || "50", 10);
+    const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "40", 10), 1), 100);
     const cursor = searchParams.get("cursor"); // message id for cursor pagination
 
     const messages = await prisma.message.findMany({
@@ -58,7 +59,7 @@ export async function GET(
           { deletedForEveryone: true }, // We render placeholder "This message was deleted"
         ],
       },
-      take: limit,
+      take: limit + 1,
       ...(cursor
         ? {
             skip: 1,
@@ -177,8 +178,12 @@ export async function GET(
       ).catch(() => {});
     }
 
+    const hasMore = messages.length > limit;
+    const pageMessages = hasMore ? messages.slice(0, limit) : messages;
+    const nextCursor = hasMore ? pageMessages[pageMessages.length - 1].id : null;
+
     // Determine message delivery / read status with blue ticks
-    const formatted = messages.map((m) => {
+    const formatted = pageMessages.map((m) => {
       const isMine = m.senderId === userId;
       let status: "SENT" | "DELIVERED" | "READ" = "SENT";
 
@@ -216,7 +221,8 @@ export async function GET(
 
     return NextResponse.json({
       messages: formatted.reverse(), // Chronological order
-      nextCursor: messages.length === limit ? messages[messages.length - 1].id : null,
+      nextCursor,
+      hasMore,
     });
   } catch (error: any) {
     if (error.message === "Unauthorized") {
@@ -290,7 +296,7 @@ export async function POST(
       );
     }
 
-    const { content, type, isViewOnce, replyToId, attachments } = parsed.data;
+    const { clientMessageId, content, type, isViewOnce, replyToId, attachments } = parsed.data;
 
     if (!content?.trim() && (!attachments || attachments.length === 0)) {
       return NextResponse.json({ error: "Message cannot be empty" }, { status: 400 });
@@ -400,6 +406,29 @@ export async function POST(
       });
     }
 
+    // Broadcast immediately via Socket.IO for zero latency
+    try {
+      const io = (globalThis as any).io;
+      if (io) {
+        const broadcastMsg = {
+          ...message,
+          clientMessageId,
+          isMine: false,
+          status: "SENT",
+        };
+        io.to(`conv:${conversationId}`).emit("message:new", broadcastMsg);
+        for (const member of otherMembers) {
+          io.to(`user:${member.userId}`).emit("message:new", broadcastMsg);
+          io.to(`user:${member.userId}`).emit("notification:new", {
+            conversationId,
+            messageId: message.id,
+          });
+        }
+      }
+    } catch (socketErr) {
+      // Non-blocking
+    }
+
     // Check if other participant is the Meta AI bot
     const metaAiMember = otherMembers.find(
       (m) => m.user?.profile?.username?.toLowerCase() === META_AI_USERNAME
@@ -454,6 +483,17 @@ export async function POST(
           where: { id: conversationId },
           data: { lastMessageAt: new Date() },
         });
+
+        const io = (globalThis as any).io;
+        if (io) {
+          const aiBroadcast = {
+            ...aiReply,
+            isMine: false,
+            status: "READ",
+          };
+          io.to(`conv:${conversationId}`).emit("message:new", aiBroadcast);
+          io.to(`user:${userId}`).emit("message:new", aiBroadcast);
+        }
       } catch (aiErr) {
         console.error("Meta AI generation error:", aiErr);
       }
@@ -461,8 +501,10 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
+      clientMessageId,
       message: {
         ...message,
+        clientMessageId,
         isMine: true,
         status: "SENT",
       },

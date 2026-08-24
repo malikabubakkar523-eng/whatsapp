@@ -20,6 +20,13 @@ import { StatusList } from "@/components/status/StatusList";
 import { WebRTCCallModal, ActiveCallData } from "@/components/call/WebRTCCallModal";
 import { ConversationType, MessageTypeData, NotificationType, MessageType } from "@/types";
 import { getSocket } from "@/lib/socket";
+import {
+  getCachedMessages,
+  saveCachedMessages,
+  appendCachedMessage,
+  getCachedConversations,
+  saveCachedConversations,
+} from "@/lib/chatCache";
 import { Avatar } from "@/components/ui/Avatar";
 import { formatUsername } from "@/utils/username";
 import { playMessageSound, playSentSound } from "@/lib/sound";
@@ -51,6 +58,9 @@ export default function AppDashboard() {
   // Data State
   const [conversations, setConversations] = useState<ConversationType[]>([]);
   const [messages, setMessages] = useState<MessageTypeData[]>([]);
+  const [hasMoreOlderMessages, setHasMoreOlderMessages] = useState(false);
+  const [nextMessageCursor, setNextMessageCursor] = useState<string | null>(null);
+  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
@@ -90,13 +100,26 @@ export default function AppDashboard() {
     }
   }, [user, isAuthLoading, router]);
 
-  // 2. Fetch Conversations
+  // 2. Fetch Conversations (Cache-First)
   const fetchConversations = useCallback(async () => {
+    // 1. Fast Cache Display (0ms)
+    try {
+      const cached = await getCachedConversations();
+      if (cached && cached.length > 0) {
+        setConversations(cached);
+        setIsLoadingConversations(false);
+      }
+    } catch {}
+
+    // 2. Background Server Sync
     try {
       const res = await fetch("/api/conversations");
       if (res.ok) {
         const data = await res.json();
-        setConversations(data.conversations || []);
+        if (data.conversations) {
+          setConversations(data.conversations);
+          saveCachedConversations(data.conversations);
+        }
       }
     } catch (err) {
       console.error("Fetch conversations error:", err);
@@ -126,27 +149,47 @@ export default function AppDashboard() {
     }
   }, [user, fetchConversations, fetchNotifications]);
 
-  // 4. Fetch Messages & Ensure Conversation Loaded
+  // 4. Fetch Messages (Cache-First + Background Server Reconcile)
   useEffect(() => {
     if (!selectedConversationId) {
       setMessages([]);
+      setHasMoreOlderMessages(false);
+      setNextMessageCursor(null);
       return;
     }
 
     const socket = getSocket();
     socket.emit("conversation:join", { conversationId: selectedConversationId });
 
+    let isSubscribed = true;
+
+    // Step 1: 0ms Instant Render from Local IndexedDB Cache
+    getCachedMessages(selectedConversationId).then((cached) => {
+      if (isSubscribed && cached && cached.length > 0) {
+        setMessages(cached);
+      }
+    });
+
+    // Step 2: Fetch latest 40 messages from server
     setIsLoadingMessages(true);
-    fetch(`/api/conversations/${selectedConversationId}/messages`)
+    fetch(`/api/conversations/${selectedConversationId}/messages?limit=40`)
       .then((res) => res.json())
       .then((data) => {
-        setMessages(data.messages || []);
+        if (!isSubscribed) return;
+        if (data.messages) {
+          setMessages(data.messages);
+          setHasMoreOlderMessages(Boolean(data.hasMore));
+          setNextMessageCursor(data.nextCursor || null);
+          saveCachedMessages(selectedConversationId, data.messages);
+        }
         setConversations((prev) =>
           prev.map((c) => (c.id === selectedConversationId ? { ...c, unreadCount: 0 } : c))
         );
       })
       .catch((err) => console.error("Fetch messages error:", err))
-      .finally(() => setIsLoadingMessages(false));
+      .finally(() => {
+        if (isSubscribed) setIsLoadingMessages(false);
+      });
 
     // If conversation object is not yet loaded in state, fetch it
     setConversations((prev) => {
@@ -168,11 +211,46 @@ export default function AppDashboard() {
     });
 
     return () => {
-      socket.emit("conversation:leave", { conversationId: selectedConversationId });
+      isSubscribed = false;
     };
   }, [selectedConversationId]);
 
-  // 5. Setup Real-time Sockets (Messages, Audio Alert Chimes, Profile Updates)
+  // Load older messages for upward infinite scrolling
+  const handleLoadOlderMessages = useCallback(async () => {
+    if (!selectedConversationId || !nextMessageCursor || isLoadingOlderMessages || !hasMoreOlderMessages) {
+      return;
+    }
+
+    setIsLoadingOlderMessages(true);
+    try {
+      const res = await fetch(
+        `/api/conversations/${selectedConversationId}/messages?limit=40&cursor=${nextMessageCursor}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.messages && data.messages.length > 0) {
+          setMessages((prev) => {
+            const existingIds = new Set(prev.map((m) => m.id));
+            const newOlder = data.messages.filter((m: MessageTypeData) => !existingIds.has(m.id));
+            const combined = [...newOlder, ...prev];
+            saveCachedMessages(selectedConversationId, combined);
+            return combined;
+          });
+          setHasMoreOlderMessages(Boolean(data.hasMore));
+          setNextMessageCursor(data.nextCursor || null);
+        } else {
+          setHasMoreOlderMessages(false);
+          setNextMessageCursor(null);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load older messages:", err);
+    } finally {
+      setIsLoadingOlderMessages(false);
+    }
+  }, [selectedConversationId, nextMessageCursor, isLoadingOlderMessages, hasMoreOlderMessages]);
+
+  // 5. Setup Real-time Sockets (Messages, Audio Alert Chimes, Profile Updates, Notifications)
   useEffect(() => {
     if (!user) return;
     const socket = getSocket();
@@ -250,13 +328,20 @@ export default function AppDashboard() {
       }
     };
 
-    const handleNewMessage = (newMsg: MessageTypeData) => {
+    const handleNewMessage = (rawMsg: MessageTypeData) => {
+      if (!rawMsg || !rawMsg.conversationId) return;
+      const isFromMe = rawMsg.senderId === user.id;
+      const formattedMsg: MessageTypeData = {
+        ...rawMsg,
+        isMine: isFromMe,
+      };
+
       // Play audio notification chime for incoming messages (except for archived or muted chats)
-      if (newMsg.senderId !== user.id) {
+      if (!isFromMe) {
         try {
           const archived = JSON.parse(localStorage.getItem("chatflow_archived_chats") || "[]");
           const muted = JSON.parse(localStorage.getItem("chatflow_muted_chats") || "[]");
-          if (!archived.includes(newMsg.conversationId) && !muted.includes(newMsg.conversationId)) {
+          if (!archived.includes(formattedMsg.conversationId) && !muted.includes(formattedMsg.conversationId)) {
             playMessageSound();
           }
         } catch (e) {
@@ -264,34 +349,64 @@ export default function AppDashboard() {
         }
       }
 
-      if (activeConvRef.current === newMsg.conversationId) {
+      if (activeConvRef.current === formattedMsg.conversationId) {
         setMessages((prev) => {
-          if (prev.some((m) => m.id === newMsg.id)) return prev;
-          return [...prev, newMsg];
+          if (prev.some((m) => m.id === formattedMsg.id)) {
+            return prev.map((m) => (m.id === formattedMsg.id ? formattedMsg : m));
+          }
+          return [...prev, formattedMsg];
         });
 
-        socket.emit("message:read", {
-          messageId: newMsg.id,
-          conversationId: newMsg.conversationId,
-        });
+        if (!isFromMe) {
+          socket.emit("message:read", {
+            messageId: formattedMsg.id,
+            conversationId: formattedMsg.conversationId,
+          });
+        }
       }
 
       setConversations((prev) => {
-        const existing = prev.find((c) => c.id === newMsg.conversationId);
+        const existing = prev.find((c) => c.id === formattedMsg.conversationId);
         if (existing) {
-          const isCurrent = activeConvRef.current === newMsg.conversationId;
+          const isCurrent = activeConvRef.current === formattedMsg.conversationId;
           const updated = {
             ...existing,
-            lastMessage: newMsg,
-            lastMessageAt: newMsg.createdAt,
-            unreadCount: isCurrent ? 0 : (existing.unreadCount || 0) + 1,
+            lastMessage: formattedMsg,
+            lastMessageAt: formattedMsg.createdAt,
+            unreadCount: isCurrent || isFromMe ? 0 : (existing.unreadCount || 0) + 1,
           };
-          return [updated, ...prev.filter((c) => c.id !== newMsg.conversationId)];
+          return [updated, ...prev.filter((c) => c.id !== formattedMsg.conversationId)];
         } else {
-          fetchConversations();
+          // New conversation not yet in list — fetch immediately
+          fetch(`/api/conversations/${formattedMsg.conversationId}`)
+            .then((r) => r.json())
+            .then((d) => {
+              if (d.conversation) {
+                setConversations((curr) => {
+                  if (curr.some((c) => c.id === d.conversation.id)) return curr;
+                  return [d.conversation, ...curr];
+                });
+              } else {
+                fetchConversations();
+              }
+            })
+            .catch(() => fetchConversations());
           return prev;
         }
       });
+    };
+
+    const handleNotificationNew = () => {
+      fetchNotifications();
+    };
+
+    const handleConversationNew = (data: { conversation: any }) => {
+      if (data?.conversation) {
+        setConversations((prev) => {
+          if (prev.some((c) => c.id === data.conversation.id)) return prev;
+          return [data.conversation, ...prev];
+        });
+      }
     };
 
     const handleStatusUpdate = (data: { messageId?: string; conversationId?: string; status: "DELIVERED" | "READ"; userId?: string }) => {
@@ -300,7 +415,7 @@ export default function AppDashboard() {
           if (data.messageId && m.id === data.messageId) {
             return { ...m, status: data.status };
           }
-          if (data.conversationId && m.conversationId === data.conversationId && m.isMine) {
+          if (data.conversationId && m.conversationId === data.conversationId && (m.isMine || m.senderId === user.id)) {
             if (data.status === "READ" || (data.status === "DELIVERED" && m.status !== "READ")) {
               return { ...m, status: data.status };
             }
@@ -388,6 +503,8 @@ export default function AppDashboard() {
     socket.on("user:status", handleStatus);
     socket.on("user:profile_updated", handleProfileUpdated);
     socket.on("message:new", handleNewMessage);
+    socket.on("notification:new", handleNotificationNew);
+    socket.on("conversation:new", handleConversationNew);
     socket.on("message:status_update", handleStatusUpdate);
     socket.on("message:reaction_update", handleReactionUpdate);
     socket.on("message:deleted", handleDeleted);
@@ -402,6 +519,8 @@ export default function AppDashboard() {
       socket.off("user:status", handleStatus);
       socket.off("user:profile_updated", handleProfileUpdated);
       socket.off("message:new", handleNewMessage);
+      socket.off("notification:new", handleNotificationNew);
+      socket.off("conversation:new", handleConversationNew);
       socket.off("message:status_update", handleStatusUpdate);
       socket.off("message:reaction_update", handleReactionUpdate);
       socket.off("message:deleted", handleDeleted);
@@ -410,7 +529,7 @@ export default function AppDashboard() {
       socket.off("call:incoming", handleIncomingCall);
       socket.off("call:ended", handleCallEnded);
     };
-  }, [user, fetchConversations, updateProfile]);
+  }, [user, fetchConversations, fetchNotifications, updateProfile]);
 
   // Periodic background auto-sync (Every 3s for Vercel Serverless / Multi-device sync)
   useEffect(() => {
@@ -644,10 +763,11 @@ export default function AppDashboard() {
   }) => {
     if (!user || !selectedConversationId) return;
 
-    // Create optimistic temporary message so it renders instantly
-    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    // Create optimistic temporary message with unique clientMessageId so it renders in 0ms
+    const clientMessageId = `cmsg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const optimisticMsg: MessageTypeData = {
-      id: tempId,
+      id: clientMessageId,
+      clientMessageId,
       conversationId: selectedConversationId,
       senderId: user.id,
       content: msgData.content || "",
@@ -673,8 +793,8 @@ export default function AppDashboard() {
       },
       attachments:
         msgData.attachments?.map((att, idx) => ({
-          id: `att_${tempId}_${idx}`,
-          messageId: tempId,
+          id: `att_${clientMessageId}_${idx}`,
+          messageId: clientMessageId,
           url: att.url,
           fileName: att.fileName,
           fileType: att.fileType,
@@ -684,22 +804,25 @@ export default function AppDashboard() {
       reactions: [],
     };
 
+    // 1. Immediately render to state & cache (0ms instant sending)
     setMessages((prev) => [...prev, optimisticMsg]);
+    appendCachedMessage(selectedConversationId, optimisticMsg);
     playSentSound();
 
     try {
       const res = await fetch(`/api/conversations/${selectedConversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(msgData),
+        body: JSON.stringify({ ...msgData, clientMessageId }),
       });
 
       const data = await res.json();
       if (res.ok && data.message) {
         const confirmedMsg = { ...data.message, isMine: true };
         setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? confirmedMsg : m))
+          prev.map((m) => (m.id === clientMessageId || m.clientMessageId === clientMessageId ? confirmedMsg : m))
         );
+        appendCachedMessage(selectedConversationId, confirmedMsg);
 
         const socket = getSocket();
         socket.emit("message:send", { message: confirmedMsg });
@@ -724,7 +847,9 @@ export default function AppDashboard() {
             const aiMsg = { ...data.aiReply, isMine: false, status: "READ" };
             setMessages((prev) => {
               if (prev.some((m) => m.id === aiMsg.id)) return prev;
-              return [...prev, aiMsg];
+              const next = [...prev, aiMsg];
+              appendCachedMessage(selectedConversationId, aiMsg);
+              return next;
             });
             setConversations((prev) => {
               const current = prev.find((c) => c.id === selectedConversationId);
@@ -741,12 +866,12 @@ export default function AppDashboard() {
           }, 350);
         }
       } else {
-        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        setMessages((prev) => prev.filter((m) => m.id !== clientMessageId));
         console.error("Message send failed:", data?.error);
       }
     } catch (err) {
       console.error("Send message error:", err);
-      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setMessages((prev) => prev.filter((m) => m.id !== clientMessageId));
     }
   };
 
@@ -1012,6 +1137,9 @@ export default function AppDashboard() {
           onReport={(type, id) => setReportTarget({ type, id })}
           onBlockUser={handleBlockUser}
           isLoadingMessages={isLoadingMessages}
+          isLoadingOlderMessages={isLoadingOlderMessages}
+          hasMoreOlderMessages={hasMoreOlderMessages}
+          onLoadMoreOlderMessages={handleLoadOlderMessages}
           onBackToChatList={() => setSelectedConversationId(null)}
           onOpenLightbox={(target) => setLightboxTarget(target)}
           onStartCall={(data) => {

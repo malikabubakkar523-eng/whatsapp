@@ -66,6 +66,7 @@ model Profile {
 
   @@index([username])
   @@index([displayName])
+  @@index([isOnline])
 }
 
 model UserSettings {

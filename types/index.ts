@@ -96,6 +96,7 @@ export interface MessageTypeData {
   reactions: MessageReactionType[];
   status?: MessageStatus;
   isMine?: boolean;
+  clientMessageId?: string;
 }
 
 export interface ConversationMemberType {

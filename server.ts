@@ -4,6 +4,8 @@ import next from "next";
 import { Server as SocketIOServer, Socket } from "socket.io";
 import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client";
+import { connectToDatabase } from "./lib/mongodb";
+import { trackUserSocket, removeUserSocket, getUserSocketCount } from "./lib/redis";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "0.0.0.0";
@@ -15,7 +17,7 @@ const prisma = new PrismaClient();
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-// Map of userId -> Set of socket IDs
+// Map of userId -> Set of socket IDs (in-memory + Redis presence sync)
 const onlineUsers = new Map<string, Set<string>>();
 
 function parseCookie(cookieHeader: string | undefined, name: string): string | null {
@@ -24,7 +26,15 @@ function parseCookie(cookieHeader: string | undefined, name: string): string | n
   return match ? decodeURIComponent(match[2]) : null;
 }
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
+  // 1. Initialize MongoDB Connection Pool & Compound Indexes
+  try {
+    await connectToDatabase();
+    console.log("✔ MongoDB Primary Database connection initialized.");
+  } catch (err: any) {
+    console.warn("MongoDB connection warning:", err?.message || err);
+  }
+
   const httpServer = createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url || "", true);
@@ -46,6 +56,9 @@ app.prepare().then(() => {
     pingInterval: 15000,
     pingTimeout: 30000,
   });
+
+  // Expose io instance globally for API routes
+  (globalThis as any).io = io;
 
   // Socket Authentication Middleware
   io.use((socket: Socket, nextMiddleware) => {
@@ -84,6 +97,7 @@ app.prepare().then(() => {
       onlineUsers.set(userId, new Set());
     }
     onlineUsers.get(userId)!.add(socketId);
+    await trackUserSocket(userId, socketId);
 
     try {
       await prisma.profile.updateMany({
@@ -127,32 +141,43 @@ app.prepare().then(() => {
           status: "DELIVERED",
           userId,
         });
+        io.to(`user:${msg.senderId}`).emit("message:status_update", {
+          messageId: msg.id,
+          conversationId: msg.conversationId,
+          status: "DELIVERED",
+          userId,
+        });
       }
     } catch (e) {}
   }
 
-  // Helper to mark a user offline and broadcast
+  // Helper to mark a user offline and broadcast (when all device/tab sockets are closed)
   async function markUserOffline(userId: string, socketId: string) {
     const userSockets = onlineUsers.get(userId);
+    let remainingSockets = 0;
     if (userSockets) {
       userSockets.delete(socketId);
-      if (userSockets.size === 0) {
+      remainingSockets = userSockets.size;
+      if (remainingSockets === 0) {
         onlineUsers.delete(userId);
-
-        const lastSeen = new Date();
-        try {
-          await prisma.profile.updateMany({
-            where: { userId },
-            data: { isOnline: false, lastSeen },
-          });
-        } catch (e) {}
-
-        io.emit("user:status", {
-          userId,
-          isOnline: false,
-          lastSeen: lastSeen.toISOString(),
-        });
       }
+    }
+
+    const redisRemaining = await removeUserSocket(userId, socketId);
+    if (remainingSockets === 0 && redisRemaining === 0) {
+      const lastSeen = new Date();
+      try {
+        await prisma.profile.updateMany({
+          where: { userId },
+          data: { isOnline: false, lastSeen },
+        });
+      } catch (e) {}
+
+      io.emit("user:status", {
+        userId,
+        isOnline: false,
+        lastSeen: lastSeen.toISOString(),
+      });
     }
   }
 
@@ -246,18 +271,21 @@ app.prepare().then(() => {
       const messageId = data.message.id;
       const senderId = data.message.senderId;
 
-      // Broadcast to all other conversation members in room
+      // Broadcast to conversation room AND all individual recipient user rooms for 100% instant delivery
       socket.to(`conv:${conversationId}`).emit("message:new", data.message);
 
-      // Check if recipient members are online right now
       try {
         const otherMembers = await prisma.conversationMember.findMany({
           where: { conversationId, userId: { not: senderId } },
           select: { userId: true },
         });
 
+        otherMembers.forEach((m) => {
+          io.to(`user:${m.userId}`).emit("message:new", data.message);
+        });
+
         const isAnyRecipientOnline = otherMembers.some(
-          (m) => onlineUsers.has(m.userId) && onlineUsers.get(m.userId)!.size > 0
+          (m) => onlineUsers.has(m.userId) && (onlineUsers.get(m.userId)?.size || 0) > 0
         );
 
         if (isAnyRecipientOnline) {
@@ -271,8 +299,13 @@ app.prepare().then(() => {
             }
           }
 
-          // Emit DELIVERED status update (2 grey ticks)
+          // Emit DELIVERED status update (2 grey ticks) to room and sender
           io.to(`conv:${conversationId}`).emit("message:status_update", {
+            messageId,
+            conversationId,
+            status: "DELIVERED",
+          });
+          io.to(`user:${senderId}`).emit("message:status_update", {
             messageId,
             conversationId,
             status: "DELIVERED",

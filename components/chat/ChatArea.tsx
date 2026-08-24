@@ -78,6 +78,9 @@ interface ChatAreaProps {
   onReport?: (targetType: "USER" | "MESSAGE" | "GROUP", targetId: string) => void;
   onBlockUser?: (userId: string) => void;
   isLoadingMessages?: boolean;
+  isLoadingOlderMessages?: boolean;
+  hasMoreOlderMessages?: boolean;
+  onLoadMoreOlderMessages?: () => void;
   onBackToChatList?: () => void;
   onOpenLightbox?: (data: {
     avatar?: string | null;
@@ -105,6 +108,9 @@ export function ChatArea({
   onReport,
   onBlockUser,
   isLoadingMessages = false,
+  isLoadingOlderMessages = false,
+  hasMoreOlderMessages = false,
+  onLoadMoreOlderMessages,
   onBackToChatList,
   onOpenLightbox,
   onStartCall,
@@ -138,6 +144,9 @@ export function ChatArea({
   const [isCallVideoDisabled, setIsCallVideoDisabled] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messageContainerRef = useRef<HTMLDivElement | null>(null);
+  const previousScrollHeightRef = useRef<number>(0);
+  const isAutoScrollingRef = useRef<boolean>(true);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
@@ -151,9 +160,31 @@ export function ChatArea({
     return () => window.removeEventListener(CONTACT_NAME_CHANGE_EVENT, handleNameChange);
   }, []);
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+    isAutoScrollingRef.current = isNearBottom;
+
+    if (el.scrollTop < 80 && hasMoreOlderMessages && !isLoadingOlderMessages && onLoadMoreOlderMessages) {
+      previousScrollHeightRef.current = el.scrollHeight;
+      onLoadMoreOlderMessages();
+    }
+  };
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+    if (isLoadingOlderMessages) return;
+
+    if (previousScrollHeightRef.current > 0 && messageContainerRef.current) {
+      const heightDiff = messageContainerRef.current.scrollHeight - previousScrollHeightRef.current;
+      messageContainerRef.current.scrollTop = heightDiff;
+      previousScrollHeightRef.current = 0;
+      return;
+    }
+
+    if (isAutoScrollingRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isTyping, isLoadingOlderMessages]);
 
   // Call timer effect
   useEffect(() => {
@@ -614,8 +645,22 @@ export function ChatArea({
         </header>
 
         {/* Message Timeline */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2">
-          {isLoadingMessages ? (
+        <div
+          ref={messageContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2"
+        >
+          {/* Top Loading Indicator for Older Messages */}
+          {isLoadingOlderMessages && (
+            <div className="flex justify-center items-center py-2 animate-fade-in">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/90 dark:bg-[#1C1C1E]/90 text-[12px] text-[#00A884] font-medium shadow-xs border border-black/[0.06] dark:border-white/[0.08]">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Loading older messages...</span>
+              </div>
+            </div>
+          )}
+
+          {isLoadingMessages && messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-8 h-8 animate-spin text-[#00A884]" />
             </div>

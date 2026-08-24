@@ -6,17 +6,23 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
+    const token = typeof window !== "undefined" ? localStorage.getItem("chatflow_token") : null;
     socket = io(typeof window !== "undefined" ? window.location.origin : "", {
       path: "/socket.io",
       transports: ["websocket", "polling"],
       autoConnect: true,
       withCredentials: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
+      auth: token ? { token } : undefined,
+      reconnectionAttempts: 20,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 2000,
     });
 
     socket.on("connect", () => {
-      console.log("⚡ [ChatFlow] Connected to real-time socket server, id:", socket?.id);
+      const currentToken = typeof window !== "undefined" ? localStorage.getItem("chatflow_token") : null;
+      if (currentToken) {
+        socket?.emit("auth:identify", { token: currentToken });
+      }
     });
 
     socket.on("connect_error", (err) => {
@@ -33,3 +39,4 @@ export function disconnectSocket() {
     socket = null;
   }
 }
+
