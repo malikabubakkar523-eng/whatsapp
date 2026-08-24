@@ -78,16 +78,25 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
             ),
           ),
 
-          // Main Scrollable Body
+          // Main Scrollable Body with Visible Animated Scrollbar
           SafeArea(
             child: FadeTransition(
               opacity: _fadeAnim,
               child: SlideTransition(
                 position: _slideAnim,
-                child: CustomScrollView(
+                child: RawScrollbar(
                   controller: _scrollController,
-                  physics: const BouncingScrollPhysics(),
-                  slivers: [
+                  thumbVisibility: true,
+                  trackVisibility: true,
+                  thickness: 6.0,
+                  radius: const Radius.circular(8),
+                  thumbColor: AppColors.primaryGreen.withOpacity(0.7),
+                  trackColor: Colors.white.withOpacity(0.06),
+                  trackRadius: const Radius.circular(8),
+                  child: CustomScrollView(
+                    controller: _scrollController,
+                    physics: const BouncingScrollPhysics(),
+                    slivers: [
                     // ============================================================
                     // 1. GLASS HEADER
                     // ============================================================
@@ -483,7 +492,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { AuthProvider } from "@/components/auth/AuthContext";
+import { TopNotificationBanner } from "@/components/notifications/TopNotificationBanner";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -40,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="scroll-smooth">
       <head>
         <link rel="icon" type="image/png" href="/logo.png" />
         <link rel="shortcut icon" href="/logo.png" />
@@ -55,12 +56,16 @@ export default function RootLayout({
       </head>
       <body
         suppressHydrationWarning
-        className="antialiased h-[100dvh] w-full overflow-hidden bg-chat-bg-light dark:bg-chat-bg-dark text-chat-text-light dark:text-chat-text-dark selection:bg-brand-500 selection:text-white transition-colors duration-200"
+        className="antialiased min-h-screen w-full bg-chat-bg-light dark:bg-[#0C1317] text-chat-text-light dark:text-chat-text-dark selection:bg-[#00A884] selection:text-white transition-colors duration-200"
       >
         <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <TopNotificationBanner />
+            {children}
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
   );
 }
+
