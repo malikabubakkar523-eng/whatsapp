@@ -107,7 +107,7 @@ export function TopNotificationBanner() {
       socket.off("message:new", handleNewMessage);
       socket.off("notification:new");
     };
-  }, [socket, user]);
+  }, [user]);
 
   if (!notification) return null;
 
