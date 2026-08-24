@@ -33,6 +33,15 @@ import {
   ChevronRight,
   Menu,
   X,
+  FileText,
+  HelpCircle,
+  Send,
+  BookOpen,
+  Scale,
+  AlertTriangle,
+  UserCheck,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 
 export default function WelcomePage() {
@@ -41,6 +50,9 @@ export default function WelcomePage() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "voice" | "call">("chat");
+  const [videoMuted, setVideoMuted] = useState(true);
+  const [helpForm, setHelpForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [helpSubmitted, setHelpSubmitted] = useState(false);
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -104,6 +116,18 @@ export default function WelcomePage() {
               className="hover:text-[#00A884] dark:hover:text-[#34D399] transition-colors cursor-pointer"
             >
               Privacy
+            </button>
+            <button
+              onClick={() => scrollToSection("rules")}
+              className="hover:text-[#00A884] dark:hover:text-[#34D399] transition-colors cursor-pointer"
+            >
+              Rules
+            </button>
+            <button
+              onClick={() => scrollToSection("help")}
+              className="hover:text-[#00A884] dark:hover:text-[#34D399] transition-colors cursor-pointer"
+            >
+              Help
             </button>
           </nav>
 
@@ -201,6 +225,60 @@ export default function WelcomePage() {
           </div>
         )}
       </header>
+
+      {/* ============================================================ */}
+      {/* 1.5  FULLSCREEN VIDEO HERO                                    */}
+      {/* ============================================================ */}
+      <section className="relative w-full h-[60vh] sm:h-[75vh] overflow-hidden bg-black">
+        <video
+          autoPlay
+          loop
+          muted={videoMuted}
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          src="https://flow-content.google/video/c064ff3e-cd0b-4b7e-8f34-c1f827f15493?Expires=1787608405&KeyName=labs-flow-prod-cdn-key&Signature=zo7El8nlNLfqKJCzPU8wF8ZGzNg"
+        />
+        {/* Dark Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
+        {/* Mute/Unmute Toggle */}
+        <button
+          onClick={() => setVideoMuted(!videoMuted)}
+          className="absolute bottom-6 right-6 z-10 p-3 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white hover:bg-black/70 transition-all active:scale-90"
+          title={videoMuted ? "Unmute" : "Mute"}
+        >
+          {videoMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        </button>
+        {/* Overlay Content */}
+        <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center text-center px-6">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-[12px] font-bold mb-5 animate-pulse">
+            <Zap className="w-3.5 h-3.5 text-[#25D366]" />
+            <span>EXPERIENCE CHATFLOW IN ACTION</span>
+          </div>
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white leading-[1.1] max-w-3xl drop-shadow-2xl">
+            Messaging,{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#25D366] to-[#00D2FF]">
+              Reimagined
+            </span>
+          </h1>
+          <p className="text-sm sm:text-base text-white/80 mt-4 max-w-lg">
+            Real-time chat, HD video calls, 24h stories, and AI — all in one beautifully crafted app.
+          </p>
+          <div className="flex gap-3 mt-7">
+            <Link
+              href="/register"
+              className="px-7 py-3 bg-[#25D366] hover:bg-[#1ebd5a] text-white font-bold text-sm rounded-full shadow-xl shadow-[#25D366]/40 active:scale-95 transition-all flex items-center gap-2"
+            >
+              Get Started <ArrowRight className="w-4 h-4" />
+            </Link>
+            <button
+              onClick={() => scrollToSection("features")}
+              className="px-7 py-3 bg-white/10 backdrop-blur-md border border-white/25 text-white font-bold text-sm rounded-full hover:bg-white/20 transition-all"
+            >
+              Explore Features
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* ============================================================ */}
       {/* 2. HERO SECTION                                               */}
@@ -627,7 +705,180 @@ export default function WelcomePage() {
       </section>
 
       {/* ============================================================ */}
-      {/* 8. FINAL CALL TO ACTION                                      */}
+      {/* 8. RULES, REGULATIONS & COMMUNITY GUIDELINES                  */}
+      {/* ============================================================ */}
+      <section id="rules" className="py-16 border-b border-black/[0.04] dark:border-white/[0.04] bg-[#F8F9FA] dark:bg-[#0C1317]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px] font-bold mb-3">
+              <Scale className="w-3.5 h-3.5" />
+              COMMUNITY STANDARDS
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-black text-gray-900 dark:text-white">
+              Rules & Regulations
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-[#8696A0] mt-2 max-w-lg mx-auto">
+              By using ChatFlow, you agree to follow these community guidelines to keep our platform safe and respectful.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              { icon: <UserCheck className="w-5 h-5 text-[#00A884]" />, title: "Respectful Communication", desc: "Treat every user with respect. Harassment, hate speech, bullying, and discrimination are strictly prohibited." },
+              { icon: <Shield className="w-5 h-5 text-blue-500" />, title: "No Spam or Scams", desc: "Sending unsolicited messages, phishing links, fraudulent content, or spam is not allowed." },
+              { icon: <Eye className="w-5 h-5 text-purple-500" />, title: "Privacy & Consent", desc: "Do not share others' private information (photos, addresses, contacts) without their explicit consent." },
+              { icon: <AlertTriangle className="w-5 h-5 text-red-500" />, title: "No Illegal Content", desc: "Sharing illegal material, piracy, or content that violates laws is prohibited and will result in permanent ban." },
+              { icon: <Lock className="w-5 h-5 text-emerald-500" />, title: "Account Security", desc: "Keep your login credentials safe. You are responsible for all activities under your account." },
+              { icon: <BookOpen className="w-5 h-5 text-cyan-500" />, title: "Intellectual Property", desc: "Respect copyrights and trademarks. Do not distribute copyrighted material without authorization." },
+              { icon: <ShieldCheck className="w-5 h-5 text-indigo-500" />, title: "Report Violations", desc: "If you encounter violations, use the in-app report feature. Our moderation team reviews reports within 24 hours." },
+              { icon: <FileText className="w-5 h-5 text-orange-500" />, title: "Terms of Service", desc: "Full terms of service and privacy policy are available in Settings. Violations may result in account suspension." },
+            ].map((rule, i) => (
+              <div key={i} className="flex gap-3.5 p-4 rounded-2xl bg-white dark:bg-[#111B21] border border-black/[0.06] dark:border-white/[0.06] hover:border-[#00A884]/30 transition-colors">
+                <div className="flex-shrink-0 mt-0.5">{rule.icon}</div>
+                <div>
+                  <h3 className="font-bold text-sm text-gray-900 dark:text-white">{rule.title}</h3>
+                  <p className="text-xs text-gray-500 dark:text-[#8696A0] mt-0.5 leading-relaxed">{rule.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================ */}
+      {/* 9. HELP & SUPPORT CENTER                                     */}
+      {/* ============================================================ */}
+      <section id="help" className="py-16 border-b border-black/[0.04] dark:border-white/[0.04]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[11px] font-bold mb-3">
+              <HelpCircle className="w-3.5 h-3.5" />
+              SUPPORT CENTER
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-black text-gray-900 dark:text-white">
+              Help & Support
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-[#8696A0] mt-2 max-w-lg mx-auto">
+              Need help? Browse our FAQ or submit a support ticket below. Our team typically responds within 24 hours.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* FAQ Section */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-[#00A884]" /> Frequently Asked Questions
+              </h3>
+              {[
+                { q: "How do I create an account?", a: "Tap 'Get Started', choose a unique @username, set a password, and you're ready to chat — no phone number needed." },
+                { q: "Is ChatFlow free to use?", a: "Yes! ChatFlow is 100% free. All features including messaging, voice/video calls, stories, and AI assistant are included." },
+                { q: "How do I find other users?", a: "Search for any user by their @username in the Find People tab. You can also scan QR codes for instant connection." },
+                { q: "Can I make voice and video calls?", a: "Yes! ChatFlow supports HD voice and video calling powered by WebRTC for crystal-clear peer-to-peer connections." },
+                { q: "How do I report a user?", a: "Open the user's profile → tap the three dots menu → select 'Report'. Our moderation team reviews all reports." },
+                { q: "Is my data encrypted?", a: "Yes. All messages and calls use end-to-end encryption. View-once media adds an extra layer of privacy." },
+              ].map((faq, i) => (
+                <details key={i} className="group rounded-xl border border-black/[0.06] dark:border-white/[0.06] bg-white dark:bg-[#111B21] overflow-hidden">
+                  <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-gray-800 dark:text-white flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#202C33] transition-colors">
+                    {faq.q}
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-open:rotate-90 transition-transform" />
+                  </summary>
+                  <div className="px-4 pb-3 text-xs text-gray-500 dark:text-[#8696A0] leading-relaxed">
+                    {faq.a}
+                  </div>
+                </details>
+              ))}
+            </div>
+
+            {/* Contact / Help Form */}
+            <div className="rounded-2xl border border-black/[0.06] dark:border-white/[0.06] bg-white dark:bg-[#111B21] p-6">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <Send className="w-5 h-5 text-[#00A884]" /> Submit a Support Ticket
+              </h3>
+              {helpSubmitted ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 mx-auto rounded-full bg-[#00A884]/15 flex items-center justify-center mb-4">
+                    <Check className="w-8 h-8 text-[#00A884]" />
+                  </div>
+                  <h4 className="text-lg font-bold text-gray-900 dark:text-white">Ticket Submitted!</h4>
+                  <p className="text-sm text-gray-500 dark:text-[#8696A0] mt-1">We'll get back to you within 24 hours at the email you provided.</p>
+                  <button
+                    onClick={() => { setHelpSubmitted(false); setHelpForm({ name: "", email: "", subject: "", message: "" }); }}
+                    className="mt-4 text-sm font-bold text-[#00A884] hover:underline"
+                  >
+                    Submit Another Ticket
+                  </button>
+                </div>
+              ) : (
+                <form
+                  onSubmit={(e) => { e.preventDefault(); setHelpSubmitted(true); }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-[#8696A0] mb-1">Your Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={helpForm.name}
+                      onChange={(e) => setHelpForm({ ...helpForm, name: e.target.value })}
+                      placeholder="Enter your full name"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#F0F2F5] dark:bg-[#202C33] border border-black/[0.06] dark:border-white/[0.06] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-[#667781] focus:outline-none focus:ring-2 focus:ring-[#00A884]/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-[#8696A0] mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      required
+                      value={helpForm.email}
+                      onChange={(e) => setHelpForm({ ...helpForm, email: e.target.value })}
+                      placeholder="your@email.com"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#F0F2F5] dark:bg-[#202C33] border border-black/[0.06] dark:border-white/[0.06] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-[#667781] focus:outline-none focus:ring-2 focus:ring-[#00A884]/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-[#8696A0] mb-1">Subject</label>
+                    <select
+                      required
+                      value={helpForm.subject}
+                      onChange={(e) => setHelpForm({ ...helpForm, subject: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#F0F2F5] dark:bg-[#202C33] border border-black/[0.06] dark:border-white/[0.06] text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#00A884]/50"
+                    >
+                      <option value="">Select a topic...</option>
+                      <option value="account">Account Issue</option>
+                      <option value="bug">Bug Report</option>
+                      <option value="feature">Feature Request</option>
+                      <option value="privacy">Privacy Concern</option>
+                      <option value="abuse">Report Abuse</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-[#8696A0] mb-1">Message</label>
+                    <textarea
+                      required
+                      rows={4}
+                      value={helpForm.message}
+                      onChange={(e) => setHelpForm({ ...helpForm, message: e.target.value })}
+                      placeholder="Describe your issue in detail..."
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#F0F2F5] dark:bg-[#202C33] border border-black/[0.06] dark:border-white/[0.06] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-[#667781] focus:outline-none focus:ring-2 focus:ring-[#00A884]/50 resize-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-3 bg-[#00A884] hover:bg-[#008f6f] text-white font-bold text-sm rounded-xl shadow-lg shadow-[#00A884]/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  >
+                    <Send className="w-4 h-4" />
+                    Submit Ticket
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================ */}
+      {/* 10. FINAL CALL TO ACTION                                     */}
       {/* ============================================================ */}
       <section className="py-16 bg-gradient-to-br from-[#00A884] to-[#008f6f] text-white text-center">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
