@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../widgets/common/bottom_nav_bar.dart';
+import '../ai/meta_ai_screen.dart';
 import '../call/calls_tab_screen.dart';
-import '../chat/new_chat_screen.dart';
 import '../settings/settings_screen.dart';
 import '../status/status_screen.dart';
 import 'chat_list_screen.dart';
@@ -21,6 +21,7 @@ class _HomeNavigationScreenState extends State<HomeNavigationScreen> {
     ChatListScreen(),
     CallsTabScreen(),
     StatusScreen(),
+    MetaAIScreen(),
     SettingsScreen(),
   ];
 
@@ -28,18 +29,17 @@ class _HomeNavigationScreenState extends State<HomeNavigationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
+      extendBody: true,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        onNewChat: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const NewChatScreen()),
-          );
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
         },
       ),
     );

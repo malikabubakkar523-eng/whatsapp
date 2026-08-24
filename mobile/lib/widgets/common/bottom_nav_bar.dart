@@ -1,104 +1,98 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
-  final ValueChanged<int> onTap;
-  final VoidCallback onNewChat;
+  final Function(int) onTap;
 
   const BottomNavBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
-    required this.onNewChat,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.darkBackground,
-        border: Border(top: BorderSide(color: AppColors.darkBorder, width: 0.6)),
-      ),
-      padding: const EdgeInsets.only(top: 8, bottom: 12),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(
-              index: 0,
-              icon: Icons.chat_bubble_rounded,
-              label: 'Chats',
-            ),
-            _buildNavItem(
-              index: 1,
-              icon: Icons.phone_rounded,
-              label: 'Calls',
-            ),
-            // Center Floating Action Button
-            GestureDetector(
-              onTap: onNewChat,
-              child: Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryGreen,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryGreen.withOpacity(0.4),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.add, color: Colors.white, size: 28),
-              ),
-            ),
-            _buildNavItem(
-              index: 2,
-              icon: Icons.donut_large_rounded,
-              label: 'Status',
-            ),
-            _buildNavItem(
-              index: 3,
-              icon: Icons.settings_rounded,
-              label: 'Settings',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    final items = [
+      {'icon': Icons.chat_bubble_rounded, 'label': 'Chats'},
+      {'icon': Icons.phone_rounded, 'label': 'Calls'},
+      {'icon': Icons.donut_large_rounded, 'label': 'Status'},
+      {'icon': Icons.auto_awesome_rounded, 'label': 'AI'},
+      {'icon': Icons.settings_rounded, 'label': 'Settings'},
+    ];
 
-  Widget _buildNavItem({
-    required int index,
-    required IconData icon,
-    required String label,
-  }) {
-    final isSelected = currentIndex == index;
-    return GestureDetector(
-      onTap: () => onTap(index),
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 24,
-            color: isSelected ? AppColors.primaryGreen : AppColors.textSecondaryDark,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected ? AppColors.primaryGreen : AppColors.textSecondaryDark,
-            ),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface.withOpacity(0.85),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: AppColors.darkBorder.withOpacity(0.8), width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(items.length, (index) {
+                final isSelected = currentIndex == index;
+                final item = items[index];
+
+                return GestureDetector(
+                  onTap: () => onTap(index),
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isSelected ? 16 : 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primaryGreen.withOpacity(0.18)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          item['icon'] as IconData,
+                          size: 22,
+                          color: isSelected
+                              ? AppColors.primaryGreen
+                              : AppColors.textSecondaryDark,
+                        ),
+                        if (isSelected) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            item['label'] as String,
+                            style: const TextStyle(
+                              color: AppColors.primaryGreen,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
       ),
     );
   }

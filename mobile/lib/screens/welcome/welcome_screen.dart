@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
@@ -27,11 +28,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 800),
     );
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.08),
+      begin: const Offset(0, 0.05),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
 
@@ -51,33 +52,33 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
       backgroundColor: AppColors.darkBackground,
       body: Stack(
         children: [
-          // Background Atmospheric Glow
+          // Background Atmospheric Glows
           Positioned(
-            top: -100,
-            left: -50,
+            top: -80,
+            left: -60,
+            child: Container(
+              width: 340,
+              height: 340,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primaryGreen.withOpacity(0.08),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 450,
+            right: -80,
             child: Container(
               width: 320,
               height: 320,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primaryGreen.withOpacity(0.06),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 200,
-            right: -80,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.accentTeal.withOpacity(0.05),
+                color: AppColors.aiPurple.withOpacity(0.06),
               ),
             ),
           ),
 
-          // Scrollable Content
+          // Main Scrollable Body
           SafeArea(
             child: FadeTransition(
               opacity: _fadeAnim,
@@ -87,18 +88,20 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                   controller: _scrollController,
                   physics: const BouncingScrollPhysics(),
                   slivers: [
-                    // 1. Top Mini Navigation Header
+                    // ============================================================
+                    // 1. GLASS HEADER
+                    // ============================================================
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
+                            const Row(
                               children: [
-                                const ChatFlowLogo(size: 32),
-                                const SizedBox(width: 8),
-                                const Text(
+                                ChatFlowLogo(size: 32),
+                                SizedBox(width: 8),
+                                Text(
                                   'ChatFlow',
                                   style: TextStyle(
                                     fontSize: 19,
@@ -109,46 +112,66 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                                 ),
                               ],
                             ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                                );
-                              },
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                backgroundColor: AppColors.darkSurface,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                              ),
-                              child: const Text(
-                                'Login',
-                                style: TextStyle(
-                                  color: AppColors.primaryGreen,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
+                            Row(
+                              children: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                    );
+                                  },
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                  ),
+                                  child: const Text(
+                                    'Login',
+                                    style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(width: 8),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryGreen,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                    elevation: 0,
+                                  ),
+                                  child: const Text(
+                                    'Get Started',
+                                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
                     ),
 
+                    // ============================================================
                     // 2. HERO SECTION
+                    // ============================================================
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
                         child: Column(
                           children: [
                             const SizedBox(height: 12),
-                            // Pill Badge
+                            // Speed Badge Pill
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                               decoration: BoxDecoration(
-                                color: AppColors.darkGreen.withOpacity(0.3),
+                                color: AppColors.darkGreen.withOpacity(0.25),
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: AppColors.primaryGreen.withOpacity(0.5), width: 0.8),
+                                border: Border.all(color: AppColors.primaryGreen.withOpacity(0.4), width: 0.8),
                               ),
                               child: const Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -156,7 +179,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                                   Icon(Icons.bolt_rounded, color: AppColors.primaryGreen, size: 16),
                                   SizedBox(width: 6),
                                   Text(
-                                    'Real-Time Messaging • Next-Gen Speed',
+                                    'Real-Time • 0ms Instant Sockets',
                                     style: TextStyle(
                                       color: AppColors.primaryGreen,
                                       fontSize: 11.5,
@@ -182,13 +205,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                                 children: [
                                   TextSpan(text: 'Connect. Share.\n'),
                                   TextSpan(
-                                    text: 'Flow effortlessly.',
+                                    text: 'Flow.',
                                     style: TextStyle(
                                       color: AppColors.primaryGreen,
                                       shadows: [
                                         Shadow(
-                                          color: AppColors.primaryGreen,
-                                          blurRadius: 20,
+                                          color: Color(0x6025D366),
+                                          blurRadius: 18,
                                         ),
                                       ],
                                     ),
@@ -198,7 +221,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                             ),
                             const SizedBox(height: 12),
                             const Text(
-                              'The fastest, most secure, and visually stunning chat platform. No phone numbers required — just your unique username.',
+                              'Fast messaging, crystal-clear calls, 24h stories, and built-in AI in one beautiful mobile app. No phone numbers needed.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13.5,
@@ -208,11 +231,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                             ),
                             const SizedBox(height: 24),
 
-                            // Hero Visual: Orbiting Avatars Cluster
+                            // Hero Avatars Cluster
                             _buildHeroAvatarCluster(),
                             const SizedBox(height: 24),
 
-                            // Primary Action Buttons
+                            // Action Buttons
                             PrimaryButton(
                               text: 'Get Started Free',
                               onPressed: () {
@@ -224,7 +247,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                             ),
                             const SizedBox(height: 10),
                             SecondaryButton(
-                              text: 'Sign In to Account',
+                              text: 'Login to Account',
                               onPressed: () {
                                 Navigator.push(
                                   context,
@@ -232,39 +255,27 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                                 );
                               },
                             ),
-                            const SizedBox(height: 14),
-                            const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.lock_outline_rounded, color: AppColors.primaryGreen, size: 13),
-                                SizedBox(width: 4),
-                                Text(
-                                  'End-to-End Encrypted • 100% Free Forever',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.textSecondaryDark,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
                           ],
                         ),
                       ),
                     ),
 
-                    // 3. INTERACTIVE CHAT PREVIEW SECTION
+                    // ============================================================
+                    // 3. REALISTIC CHAT PHONE PREVIEW MOCKUP
+                    // ============================================================
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
-                        child: _buildChatPreviewCard(),
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                        child: _buildPhoneChatMockup(),
                       ),
                     ),
 
-                    // 4. CORE FEATURES GRID SECTION
+                    // ============================================================
+                    // 4. CORE FEATURES MATRIX
+                    // ============================================================
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -287,52 +298,96 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                               ),
                             ),
                             const SizedBox(height: 16),
-                            _buildFeatureTile(
+                            _buildFeatureCard(
                               icon: Icons.alternate_email_rounded,
                               title: 'Username-First Identity',
-                              description: 'Find friends and colleagues instantly using @handles without sharing your personal phone number.',
+                              description: 'Find anyone instantly using @handles. No need to share your personal phone number.',
                             ),
                             const SizedBox(height: 10),
-                            _buildFeatureTile(
+                            _buildFeatureCard(
                               icon: Icons.flash_on_rounded,
-                              title: 'Instant 0ms Message Speed',
-                              description: 'Optimistic UI and real-time Socket.IO sync deliver messages with zero latency.',
+                              title: '0ms Message Speed',
+                              description: 'Optimistic UI and real-time Socket.IO sync make sending and receiving feel instant.',
                             ),
                             const SizedBox(height: 10),
-                            _buildFeatureTile(
+                            _buildFeatureCard(
                               icon: Icons.videocam_rounded,
-                              title: 'HD Audio & Video Calls',
-                              description: 'Crystal-clear peer-to-peer WebRTC calling with floating picture-in-picture mode.',
+                              title: 'HD Audio & Video Calling',
+                              description: 'Crystal-clear peer-to-peer WebRTC calling with floating picture-in-picture video.',
                             ),
                             const SizedBox(height: 10),
-                            _buildFeatureTile(
+                            _buildFeatureCard(
                               icon: Icons.auto_awesome_rounded,
                               title: 'Built-in Meta AI Assistant',
-                              description: 'Ask questions, summarize conversations, translate languages, and generate ideas anytime.',
+                              description: 'Summarize discussions, draft replies, translate messages, and brainstorm anytime.',
                             ),
                             const SizedBox(height: 10),
-                            _buildFeatureTile(
+                            _buildFeatureCard(
                               icon: Icons.timelapse_rounded,
                               title: '24-Hour Disappearing Stories',
-                              description: 'Share photos, video clips, and text updates that automatically expire after 24 hours.',
+                              description: 'Share photos, video clips, and status thoughts that automatically vanish in 24 hours.',
                             ),
                           ],
                         ),
                       ),
                     ),
 
-                    // 5. HD VIDEO CALLING SHOWCASE
+                    // ============================================================
+                    // 5. HD VIDEO CALL SHOWCASE
+                    // ============================================================
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-                        child: _buildVideoCallCard(),
+                        child: _buildVideoCallShowcase(),
                       ),
                     ),
 
-                    // 6. BOTTOM CTA & FOOTER
+                    // ============================================================
+                    // 6. 24H STORIES SHOWCASE
+                    // ============================================================
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                        child: _buildStoriesShowcase(),
+                      ),
+                    ),
+
+                    // ============================================================
+                    // 7. META AI ASSISTANT SHOWCASE
+                    // ============================================================
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                        child: _buildAIShowcase(),
+                      ),
+                    ),
+
+                    // ============================================================
+                    // 8. PRIVACY & SECURITY SUITE
+                    // ============================================================
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                        child: _buildPrivacyShowcase(),
+                      ),
+                    ),
+
+                    // ============================================================
+                    // 9. HOW CHATFLOW WORKS (1-2-3)
+                    // ============================================================
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                        child: _buildHowItWorks(),
+                      ),
+                    ),
+
+                    // ============================================================
+                    // 10. FINAL CTA CARD
+                    // ============================================================
                     SliverToBoxAdapter(
                       child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+                        margin: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
                         padding: const EdgeInsets.all(24.0),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
@@ -341,12 +396,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-                          border: Border.all(color: AppColors.primaryGreen.withOpacity(0.3), width: 1),
+                          border: Border.all(color: AppColors.primaryGreen.withOpacity(0.35), width: 1.2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primaryGreen.withOpacity(0.08),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
                         ),
                         child: Column(
                           children: [
                             const ChatFlowLogo(size: 48),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 14),
                             const Text(
                               'Ready to experience ChatFlow?',
                               textAlign: TextAlign.center,
@@ -358,7 +420,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                             ),
                             const SizedBox(height: 6),
                             const Text(
-                              'Join thousands of users enjoying private, fast, and modern messaging.',
+                              'Join thousands of users enjoying private, instant, and modern messaging.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 12.5,
@@ -375,15 +437,42 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                                 );
                               },
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12),
                             const Text(
-                              'By continuing, you agree to ChatFlow\'s\nTerms of Service and Privacy Policy',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                color: AppColors.textSecondaryDark,
-                                height: 1.3,
-                              ),
+                              '100% Free Forever • No Credit Card Required',
+                              style: TextStyle(fontSize: 11, color: AppColors.primaryGreen, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // ============================================================
+                    // 11. FOOTER
+                    // ============================================================
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 20.0),
+                        child: Column(
+                          children: [
+                            const Text(
+                              '© 2026 ChatFlow Inc. All rights reserved.',
+                              style: TextStyle(color: AppColors.textMutedDark, fontSize: 11),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                TextButton(
+                                  onPressed: () {},
+                                  child: const Text('Terms of Service', style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
+                                ),
+                                const Text('•', style: TextStyle(color: AppColors.textMutedDark)),
+                                TextButton(
+                                  onPressed: () {},
+                                  child: const Text('Privacy Policy', style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -455,13 +544,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildChatPreviewCard() {
+  Widget _buildPhoneChatMockup() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.darkSurface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         border: Border.all(color: AppColors.darkBorder, width: 0.8),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 16),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -487,13 +579,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                   color: AppColors.darkGreen.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text('Live Demo', style: TextStyle(color: AppColors.primaryGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+                child: const Text('Live Mockup', style: TextStyle(color: AppColors.primaryGreen, fontSize: 10, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
           const Divider(color: AppColors.darkBorder, height: 20),
 
-          // Incoming Bubble
+          // Incoming Text
           Align(
             alignment: Alignment.centerLeft,
             child: Container(
@@ -502,12 +594,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                 color: AppColors.darkIncomingBubble,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Text('Hey! The new ChatFlow update is super fast ⚡', style: TextStyle(color: Colors.white, fontSize: 13)),
+              child: const Text('Hey! The new ChatFlow UI is super smooth ⚡', style: TextStyle(color: Colors.white, fontSize: 13)),
             ),
           ),
           const SizedBox(height: 8),
 
-          // Outgoing Bubble with double blue tick
+          // Outgoing Text with Double Blue Ticks
           Align(
             alignment: Alignment.centerRight,
             child: Container(
@@ -526,12 +618,35 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
               ),
             ),
           ),
+          const SizedBox(height: 8),
+
+          // Voice Memo Waveform
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.darkIncomingBubble,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.play_arrow_rounded, color: AppColors.primaryGreen, size: 22),
+                  SizedBox(width: 8),
+                  Text('||||||||||||||||||', style: TextStyle(color: AppColors.primaryGreen, fontSize: 12, letterSpacing: 2)),
+                  SizedBox(width: 8),
+                  Text('0:14', style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildFeatureTile({required IconData icon, required String title, required String description}) {
+  Widget _buildFeatureCard({required IconData icon, required String title, required String description}) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -566,7 +681,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildVideoCallCard() {
+  Widget _buildVideoCallShowcase() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -576,20 +691,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
       ),
       child: Column(
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.videocam_rounded, color: AppColors.primaryGreen, size: 20),
-              const SizedBox(width: 8),
-              const Text('HD WebRTC Video Calling', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryGreen.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text('1080p HD', style: TextStyle(color: AppColors.primaryGreen, fontSize: 10.5, fontWeight: FontWeight.bold)),
-              ),
+              Icon(Icons.videocam_rounded, color: AppColors.primaryGreen, size: 20),
+              SizedBox(width: 8),
+              Text('HD WebRTC Video Calling', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+              Spacer(),
+              Text('1080p HD', style: TextStyle(color: AppColors.primaryGreen, fontSize: 11, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 12),
@@ -600,30 +708,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
               children: [
                 Image.network(
                   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600',
-                  height: 160,
+                  height: 150,
                   width: double.infinity,
                   fit: BoxFit.cover,
                 ),
                 Container(
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.all(10.0),
-                  child: Row(
+                  height: 44,
+                  color: Colors.black54,
+                  child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.mic_rounded, color: Colors.white, size: 18),
                       SizedBox(width: 16),
                       Icon(Icons.videocam_rounded, color: Colors.white, size: 18),
-                      SizedBox(width: 16),
-                      Icon(Icons.flip_camera_ios_rounded, color: Colors.white, size: 18),
                       SizedBox(width: 16),
                       Icon(Icons.call_end_rounded, color: AppColors.errorRed, size: 20),
                     ],
@@ -634,6 +731,173 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStoriesShowcase() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        border: Border.all(color: AppColors.darkBorder, width: 0.8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.donut_large_rounded, color: AppColors.primaryGreen, size: 20),
+              SizedBox(width: 8),
+              Text('24h Disappearing Stories', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _buildStoryThumb('My Status', '', isAdd: true),
+              const SizedBox(width: 12),
+              _buildStoryThumb('Emma', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'),
+              const SizedBox(width: 12),
+              _buildStoryThumb('Michael', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStoryThumb(String name, String url, {bool isAdd = false}) {
+    return Column(
+      children: [
+        Container(
+          width: 52,
+          height: 52,
+          padding: const EdgeInsets.all(2.5),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.primaryGreen, width: 2),
+          ),
+          child: CircleAvatar(
+            backgroundImage: url.isNotEmpty ? NetworkImage(url) : null,
+            backgroundColor: AppColors.darkSurfaceElevated,
+            child: isAdd ? const Icon(Icons.add_rounded, color: AppColors.primaryGreen) : null,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(name, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11)),
+      ],
+    );
+  }
+
+  Widget _buildAIShowcase() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        border: Border.all(color: AppColors.darkBorder, width: 0.8),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded, color: Color(0xFF00D2FF), size: 20),
+              SizedBox(width: 8),
+              Text('ChatFlow AI Companion', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+              Spacer(),
+              Icon(Icons.verified_rounded, color: Color(0xFF00D2FF), size: 16),
+            ],
+          ),
+          SizedBox(height: 10),
+          Text(
+            '"Explain quantum computing in simple terms ✨"',
+            style: TextStyle(color: AppColors.primaryGreen, fontSize: 13, fontStyle: FontStyle.italic),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Quantum computers use superposition qubits to solve complex calculations at lightning speed!',
+            style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrivacyShowcase() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        border: Border.all(color: AppColors.darkBorder, width: 0.8),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.security_rounded, color: AppColors.primaryGreen, size: 20),
+              SizedBox(width: 8),
+              Text('Privacy & Security First', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            'End-to-End Encryption, view-once disappearing media, custom last-seen privacy, and username-first contacts ensure your data stays strictly yours.',
+            style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12.5, height: 1.35),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHowItWorks() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        border: Border.all(color: AppColors.darkBorder, width: 0.8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('HOW IT WORKS', style: TextStyle(color: AppColors.primaryGreen, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+          const SizedBox(height: 4),
+          const Text('Get Started in Seconds', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          _buildStepRow('1', 'Pick a Username', 'Create a unique @handle without entering your phone number.'),
+          const SizedBox(height: 8),
+          _buildStepRow('2', 'Connect Instantly', 'Search colleagues or invite friends via username or QR code.'),
+          const SizedBox(height: 8),
+          _buildStepRow('3', 'Chat & Flow', 'Enjoy instant messaging, HD video calling, and 24h stories.'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepRow(String number, String title, String desc) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CircleAvatar(
+          radius: 12,
+          backgroundColor: AppColors.primaryGreen,
+          child: Text(number, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold)),
+              Text(desc, style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
