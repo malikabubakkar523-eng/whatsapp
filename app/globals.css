@@ -57,10 +57,11 @@ input, textarea, [contenteditable="true"], .selectable-text {
 
 html, body {
   touch-action: manipulation;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: contain;
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* iOS Frosted Glass Header / Blur Effect */
@@ -256,5 +257,14 @@ html, body {
 
 .dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(37, 211, 102, 0.8);
+}
+
+/* Slow float/bounce for hero images */
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+.animate-bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
 }
 

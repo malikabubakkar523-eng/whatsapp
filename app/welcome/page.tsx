@@ -69,11 +69,11 @@ export default function WelcomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] dark:bg-[#0C1317] text-gray-900 dark:text-[#E9EDEF] flex flex-col selection:bg-[#00A884] selection:text-white transition-colors duration-200">
+    <div className="min-h-screen bg-[#F0F2F5] dark:bg-[#0C1317] text-gray-900 dark:text-[#E9EDEF] flex flex-col selection:bg-[#00A884] selection:text-white transition-colors duration-200 overflow-y-auto overflow-x-hidden">
       {/* ============================================================ */}
-      {/* 1. STICKY MODERN HEADER                                       */}
+      {/* 1. FIXED MODERN HEADER                                        */}
       {/* ============================================================ */}
-      <header className="sticky top-0 z-50 border-b border-black/[0.06] dark:border-white/[0.08] bg-white/85 dark:bg-[#111B21]/85 backdrop-blur-md transition-all">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-black/[0.06] dark:border-white/[0.08] bg-white/90 dark:bg-[#111B21]/90 backdrop-blur-xl transition-all shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <AppLogo size="sm" showText={true} />
@@ -226,6 +226,9 @@ export default function WelcomePage() {
         )}
       </header>
 
+      {/* Spacer for fixed header */}
+      <div className="h-16" />
+
       {/* ============================================================ */}
       {/* 1.5  FULLSCREEN VIDEO HERO                                    */}
       {/* ============================================================ */}
@@ -305,6 +308,16 @@ export default function WelcomePage() {
             ChatFlow lets you search and chat with anyone directly by their unique username. Fast, private, voice notes,
             video calls, 24-hour stories, and intelligent Meta AI assistance.
           </p>
+
+          {/* Chat Illustration Image */}
+          <div className="w-full max-w-md mx-auto pt-2">
+            <img
+              src="https://img.icons8.com/3d-fluency/512/chat.png"
+              alt="Chat illustration"
+              className="w-full h-auto drop-shadow-xl animate-bounce-slow"
+              loading="lazy"
+            />
+          </div>
 
           {/* Dual CTAs */}
           <div className="flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto pt-2">
@@ -525,6 +538,15 @@ export default function WelcomePage() {
           </div>
 
           <div className="rounded-3xl bg-[#F0F2F5] dark:bg-[#0C1317] p-6 border border-black/[0.06] dark:border-white/[0.06] shadow-sm space-y-3">
+            {/* Messaging Illustration */}
+            <div className="flex justify-center pb-2">
+              <img
+                src="https://img.icons8.com/3d-fluency/256/speech-bubble-with-dots.png"
+                alt="Real-time messaging"
+                className="w-24 h-24 drop-shadow-lg"
+                loading="lazy"
+              />
+            </div>
             <div className="bg-white dark:bg-[#111B21] p-4 rounded-2xl shadow-xs border border-black/[0.04] dark:border-white/[0.04]">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-[#00A884]">Real-Time Typing Indicator</span>
@@ -592,7 +614,16 @@ export default function WelcomePage() {
           </div>
 
           <div id="stories" className="space-y-5">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#00A884]">Calls & Stories</span>
+            {/* Stories Illustration */}
+            <div className="flex items-center gap-3">
+              <img
+                src="https://img.icons8.com/3d-fluency/94/video-call.png"
+                alt="Video calls"
+                className="w-14 h-14 drop-shadow-md"
+                loading="lazy"
+              />
+              <span className="text-xs font-bold uppercase tracking-wider text-[#00A884]">Calls & Stories</span>
+            </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white leading-tight">
               Express Yourself with 24-Hour Stories & HD Calls
             </h2>
