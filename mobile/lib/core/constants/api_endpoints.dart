@@ -16,10 +16,12 @@ class ApiEndpoints {
   static String reactMessage(String messageId) => '$baseUrl/messages/$messageId/reaction';
   static String markRead(String messageId) => '$baseUrl/messages/$messageId/read';
 
-  // Users & Search
+  // Users & Search & Profile Visitors
   static const String searchUsers = '$baseUrl/users/search';
   static const String userProfile = '$baseUrl/users/profile';
   static const String userSettings = '$baseUrl/users/settings';
+  static const String profileVisitors = '$baseUrl/users/profile-visitors';
+  static const String recordProfileVisit = '$baseUrl/users/visit';
 
   // Calls & WebRTC
   static const String calls = '$baseUrl/calls';

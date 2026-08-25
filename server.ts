@@ -421,6 +421,13 @@ app.prepare().then(async () => {
       io.emit("user:profile_updated", data);
     });
 
+    // Real-time profile visit notification
+    socket.on("profile:visit", (data: { targetUserId: string; visitor: any }) => {
+      if (data?.targetUserId) {
+        io.to(`user:${data.targetUserId}`).emit("profile:visitor_new", data);
+      }
+    });
+
     // ============================================================
     // Real-Time WebRTC Voice & Video Calling Events
     // ============================================================

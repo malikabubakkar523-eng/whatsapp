@@ -12,6 +12,8 @@ import '../chat/chat_conversation_screen.dart';
 import '../chat/new_chat_screen.dart';
 import '../chat/search_messages_screen.dart';
 
+import '../../widgets/common/modern_dot_loader.dart';
+
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
 
@@ -27,9 +29,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
+      final chat = Provider.of<ChatProvider>(context, listen: false);
       if (auth.currentUser != null) {
-        Provider.of<ChatProvider>(context, listen: false)
-            .fetchConversations(auth.currentUser!.id);
+        chat.initSocketListeners(auth.currentUser!.id);
+        chat.fetchConversations(auth.currentUser!.id);
       }
     });
   }
@@ -45,7 +48,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final chatProvider = Provider.of<ChatProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.currentUser;
-    final conversations = chatProvider.filteredConversations;
+    final conversations = chatProvider.conversations;
 
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
@@ -205,11 +208,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   const Divider(color: AppColors.darkBorder, height: 1, indent: 76),
 
                   // User Conversations List
-                  if (chatProvider.isLoading && conversations.isEmpty)
+                  if (chatProvider.isLoadingConversations && conversations.isEmpty)
                     const Padding(
                       padding: EdgeInsets.all(32.0),
                       child: Center(
-                        child: CircularProgressIndicator(color: AppColors.primaryGreen),
+                        child: ModernDotLoader(size: 10, spacing: 6),
                       ),
                     )
                   else if (conversations.isEmpty)

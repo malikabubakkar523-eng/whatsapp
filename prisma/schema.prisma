@@ -28,6 +28,10 @@ model User {
   messageReads      MessageRead[]
   messageDeliveries MessageDelivery[]
   
+  // Profile Visitors
+  profileVisitsReceived ProfileVisit[]    @relation("VisitedProfileRelation")
+  profileVisitsMade     ProfileVisit[]    @relation("VisitorRelation")
+
   // Notifications
   notificationsReceived Notification[]    @relation("UserNotifications")
   notificationsSent     Notification[]    @relation("ActorNotifications")
@@ -306,5 +310,17 @@ model StatusLike {
 
   @@unique([statusId, userId])
   @@index([statusId])
+}
+
+model ProfileVisit {
+  id          String   @id @default(uuid())
+  visitedId   String
+  visited     User     @relation("VisitedProfileRelation", fields: [visitedId], references: [id], onDelete: Cascade)
+  visitorId   String
+  visitor     User     @relation("VisitorRelation", fields: [visitorId], references: [id], onDelete: Cascade)
+  visitedAt   DateTime @default(now())
+
+  @@index([visitedId, visitedAt])
+  @@index([visitorId])
 }
 

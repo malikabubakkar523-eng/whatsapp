@@ -336,6 +336,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                               title: '24-Hour Disappearing Stories',
                               description: 'Share photos, video clips, and status thoughts that automatically vanish in 24 hours.',
                             ),
+                            const SizedBox(height: 10),
+                            _buildFeatureCard(
+                              icon: Icons.remove_red_eye_rounded,
+                              title: 'Real-Time Profile Visitors',
+                              description: 'Know instantly when someone views your profile with visitor logs and timestamps.',
+                            ),
                           ],
                         ),
                       ),
@@ -352,7 +358,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                     ),
 
                     // ============================================================
-                    // 6. 24H STORIES SHOWCASE
+                    // 6. PROFILE VISITORS SHOWCASE
+                    // ============================================================
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                        child: _buildVisitorsShowcase(),
+                      ),
+                    ),
+
+                    // ============================================================
+                    // 7. 24H STORIES SHOWCASE
                     // ============================================================
                     SliverToBoxAdapter(
                       child: Padding(
@@ -362,7 +378,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                     ),
 
                     // ============================================================
-                    // 7. META AI ASSISTANT SHOWCASE
+                    // 8. META AI ASSISTANT SHOWCASE
                     // ============================================================
                     SliverToBoxAdapter(
                       child: Padding(
@@ -372,7 +388,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                     ),
 
                     // ============================================================
-                    // 8. PRIVACY & SECURITY SUITE
+                    // 9. PRIVACY & SECURITY SUITE
                     // ============================================================
                     SliverToBoxAdapter(
                       child: Padding(
@@ -734,6 +750,75 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                       Icon(Icons.call_end_rounded, color: AppColors.errorRed, size: 20),
                     ],
                   ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVisitorsShowcase() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        border: Border.all(color: AppColors.darkBorder, width: 0.8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.remove_red_eye_rounded, color: AppColors.primaryGreen, size: 20),
+              const SizedBox(width: 8),
+              const Text('Profile Visitors', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.primaryGreen.withOpacity(0.4), width: 0.8),
+                ),
+                child: const Text('New Feature', style: TextStyle(color: AppColors.primaryGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.darkBackground,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.darkBorder.withOpacity(0.5), width: 0.8),
+            ),
+            child: Row(
+              children: [
+                const CircleAvatar(
+                  radius: 18,
+                  backgroundImage: NetworkImage('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Emma Watson', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5)),
+                      Text('Visited your profile • 2m ago', style: TextStyle(color: AppColors.primaryGreen, fontSize: 11, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.darkSurfaceElevated,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primaryGreen.withOpacity(0.3), width: 0.8),
+                  ),
+                  child: const Text('Chat', style: TextStyle(color: AppColors.primaryGreen, fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),

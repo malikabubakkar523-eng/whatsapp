@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../widgets/chat/chat_input_bar.dart';
 import '../../widgets/chat/message_bubble.dart';
+import '../../widgets/common/modern_dot_loader.dart';
 import '../../widgets/common/user_avatar.dart';
 import '../call/video_call_screen.dart';
 
@@ -30,15 +31,23 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
+      final chat = Provider.of<ChatProvider>(context, listen: false);
+      chat.setCurrentlyOpenConversation(widget.conversation.id);
+
       if (auth.currentUser != null) {
-        Provider.of<ChatProvider>(context, listen: false)
-            .fetchMessages(widget.conversation.id, auth.currentUser!.id);
+        chat.fetchMessages(widget.conversation.id, auth.currentUser!.id);
       }
     });
   }
 
   @override
   void dispose() {
+    // Unset active conversation on screen exit
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<ChatProvider>(context, listen: false).setCurrentlyOpenConversation(null);
+      }
+    });
     _scrollController.dispose();
     super.dispose();
   }
@@ -46,8 +55,8 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 250),
+        0.0,
+        duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
       );
     }
@@ -61,22 +70,25 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
     final currentUserId = authProvider.currentUser?.id ?? '';
     final isTyping = chatProvider.isUserTyping(widget.conversation.id);
 
+    // Prepare reversed list so index 0 is the newest message at the bottom
+    final reversedMessages = messages.reversed.toList();
+
     return Scaffold(
       backgroundColor: AppColors.darkChatBackground,
       appBar: AppBar(
         backgroundColor: AppColors.darkBackground,
         elevation: 0,
-        leadingWidth: 70,
+        leadingWidth: 72,
         leading: Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 19),
               onPressed: () => Navigator.pop(context),
             ),
             UserAvatar(
               name: widget.conversation.displayName,
               imageUrl: widget.conversation.displayAvatar,
-              radius: 17,
+              radius: 16,
               isOnline: widget.conversation.isOnline,
             ),
           ],
@@ -86,21 +98,35 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
           children: [
             Text(
               widget.conversation.displayName,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+              style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold, color: Colors.white),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            Text(
-              isTyping
-                  ? 'typing...'
-                  : (widget.conversation.isOnline ? 'Online' : 'offline'),
-              style: TextStyle(
-                fontSize: 11,
-                color: isTyping || widget.conversation.isOnline
-                    ? AppColors.primaryGreen
-                    : AppColors.textSecondaryDark,
-                fontWeight: FontWeight.w500,
-              ),
+            Row(
+              children: [
+                if (widget.conversation.isOnline && !isTyping)
+                  Container(
+                    width: 6,
+                    height: 6,
+                    margin: const EdgeInsets.only(right: 4),
+                    decoration: const BoxDecoration(
+                      color: AppColors.primaryGreen,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                Text(
+                  isTyping
+                      ? 'typing...'
+                      : (widget.conversation.isOnline ? 'Online' : 'offline'),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isTyping || widget.conversation.isOnline
+                        ? AppColors.primaryGreen
+                        : AppColors.textSecondaryDark,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -145,55 +171,48 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         children: [
           // Messages Timeline
           Expanded(
-            child: messages.isEmpty && !chatProvider.isLoadingMessages
-                ? _buildEmptyState()
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    itemCount: messages.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return Center(
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.darkSurface.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'Today',
-                              style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 11, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        );
-                      }
+            child: chatProvider.isLoadingMessages && messages.isEmpty
+                ? const Center(
+                    child: ModernDotLoader(size: 10, spacing: 6),
+                  )
+                : messages.isEmpty
+                    ? _buildEmptyState()
+                    : RawScrollbar(
+                        controller: _scrollController,
+                        thumbVisibility: true,
+                        thickness: 4.0,
+                        radius: const Radius.circular(4),
+                        thumbColor: AppColors.primaryGreen.withOpacity(0.5),
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          reverse: true, // index 0 is bottom
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                          itemCount: reversedMessages.length,
+                          itemBuilder: (context, index) {
+                            final msg = reversedMessages[index];
+                            final isMine = msg.senderId == currentUserId || msg.isMine;
 
-                      final msg = messages[index - 1];
-                      final isMine = msg.senderId == currentUserId || msg.isMine;
-
-                      return MessageBubble(
-                        message: msg,
-                        isMine: isMine,
-                      );
-                    },
-                  ),
+                            return MessageBubble(
+                              message: msg,
+                              isMine: isMine,
+                            );
+                          },
+                        ),
+                      ),
           ),
 
           // Typing status banner
           if (isTyping)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               alignment: Alignment.centerLeft,
+              color: AppColors.darkSurface.withOpacity(0.5),
               child: Row(
                 children: [
-                  const Text('typing', style: TextStyle(color: AppColors.primaryGreen, fontSize: 12)),
-                  const SizedBox(width: 6),
-                  Container(
-                    width: 4,
-                    height: 4,
-                    decoration: const BoxDecoration(color: AppColors.primaryGreen, shape: BoxShape.circle),
-                  ),
+                  const Text('typing', style: TextStyle(color: AppColors.primaryGreen, fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 8),
+                  const ModernDotLoader(size: 5, spacing: 3),
                 ],
               ),
             ),
@@ -206,19 +225,18 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
                 content: text,
                 currentUserId: currentUserId,
               );
-              Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+              _scrollToBottom();
             },
             onAttachment: () {},
             onCamera: () {},
             onVoiceRecord: () {
-              // Send mock voice message for demonstration
               chatProvider.sendMessage(
                 conversationId: widget.conversation.id,
-                content: 'Voice note (0:14)',
+                content: 'Voice note (0:14) 🎙️',
                 currentUserId: currentUserId,
                 type: MessageType.AUDIO,
               );
-              Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+              _scrollToBottom();
             },
           ),
         ],
@@ -232,22 +250,23 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 56,
-            height: 56,
-            decoration: const BoxDecoration(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
               color: AppColors.darkSurface,
               shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primaryGreen.withOpacity(0.3), width: 1.5),
             ),
-            child: const Icon(Icons.send_rounded, color: AppColors.primaryGreen, size: 24),
+            child: const Icon(Icons.mark_chat_unread_rounded, color: AppColors.primaryGreen, size: 26),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           const Text(
-            'No messages yet',
-            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+            'Start a conversation',
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           const Text(
-            'Say hello to start chatting in real time!',
+            'Messages are end-to-end encrypted & instant.',
             style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12),
           ),
         ],

@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_spacing.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/chat_provider.dart';
 import '../../widgets/common/user_avatar.dart';
 import '../welcome/welcome_screen.dart';
 import 'appearance_screen.dart';
+import 'profile_visitors_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -93,6 +95,19 @@ class SettingsScreen extends StatelessWidget {
               icon: Icons.lock_outline_rounded,
               title: 'Privacy',
               onTap: () {},
+            ),
+            _buildTile(
+              icon: Icons.remove_red_eye_outlined,
+              title: 'Profile Visitors',
+              subtitle: 'See who viewed your profile',
+              badgeCount: Provider.of<ChatProvider>(context).unreadVisitorsCount,
+              onTap: () {
+                Provider.of<ChatProvider>(context, listen: false).resetVisitorCount();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileVisitorsScreen()),
+                );
+              },
             ),
             _buildTile(
               icon: Icons.palette_outlined,
@@ -191,13 +206,32 @@ class SettingsScreen extends StatelessWidget {
     required IconData icon,
     required String title,
     String? subtitle,
+    int badgeCount = 0,
     required VoidCallback onTap,
   }) {
     return ListTile(
       leading: Icon(icon, color: AppColors.textSecondaryDark, size: 22),
-      title: Text(
-        title,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white),
+      title: Row(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white),
+          ),
+          if (badgeCount > 0) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$badgeCount',
+                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ],
       ),
       subtitle: subtitle != null
           ? Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSecondaryDark))

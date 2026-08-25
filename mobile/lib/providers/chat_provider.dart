@@ -8,34 +8,77 @@ import '../services/socket_service.dart';
 
 class ChatProvider extends ChangeNotifier {
   List<ConversationModel> _conversations = [];
-  Map<String, List<MessageModel>> _messages = {};
+  final Map<String, List<MessageModel>> _messages = {};
   bool _isLoadingConversations = false;
   bool _isLoadingMessages = false;
   String _activeFilter = 'All'; // All, Unread, Groups, Archived
-  Map<String, bool> _typingUsers = {}; // conversationId -> isTyping
+  final Map<String, bool> _typingUsers = {}; // conversationId -> isTyping
+  int _unreadVisitorsCount = 0;
+  String? _currentlyOpenConversationId;
 
   List<ConversationModel> get conversations {
+    List<ConversationModel> filtered;
     if (_activeFilter == 'Unread') {
-      return _conversations.where((c) => c.unreadCount > 0 && !c.isArchived).toList();
+      filtered = _conversations.where((c) => c.unreadCount > 0 && !c.isArchived).toList();
     } else if (_activeFilter == 'Groups') {
-      return _conversations.where((c) => c.isGroup && !c.isArchived).toList();
+      filtered = _conversations.where((c) => c.isGroup && !c.isArchived).toList();
     } else if (_activeFilter == 'Archived') {
-      return _conversations.where((c) => c.isArchived).toList();
+      filtered = _conversations.where((c) => c.isArchived).toList();
+    } else {
+      filtered = _conversations.where((c) => !c.isArchived).toList();
     }
-    return _conversations.where((c) => !c.isArchived).toList();
+
+    // Sort by lastMessageAt descending (latest on top)
+    filtered.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+    return filtered;
   }
 
   bool get isLoadingConversations => _isLoadingConversations;
   bool get isLoadingMessages => _isLoadingMessages;
   String get activeFilter => _activeFilter;
+  int get unreadVisitorsCount => _unreadVisitorsCount;
 
   void setFilter(String filter) {
     _activeFilter = filter;
     notifyListeners();
   }
 
+  void setCurrentlyOpenConversation(String? id) {
+    _currentlyOpenConversationId = id;
+    if (id != null) {
+      // Mark as read in local conversation list
+      final idx = _conversations.indexWhere((c) => c.id == id);
+      if (idx != -1) {
+        final c = _conversations[idx];
+        _conversations[idx] = ConversationModel(
+          id: c.id,
+          isGroup: c.isGroup,
+          name: c.name,
+          description: c.description,
+          avatar: c.avatar,
+          isArchived: c.isArchived,
+          isPinned: c.isPinned,
+          unreadCount: 0,
+          lastMessage: c.lastMessage,
+          lastMessageAt: c.lastMessageAt,
+          members: c.members,
+          otherUser: c.otherUser,
+        );
+        notifyListeners();
+      }
+    }
+  }
+
+  void resetVisitorCount() {
+    _unreadVisitorsCount = 0;
+    notifyListeners();
+  }
+
   List<MessageModel> getMessages(String conversationId) {
-    return _messages[conversationId] ?? [];
+    final list = _messages[conversationId] ?? [];
+    // Ensure chronological order
+    list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return list;
   }
 
   bool isUserTyping(String conversationId) {
@@ -45,17 +88,63 @@ class ChatProvider extends ChangeNotifier {
   void initSocketListeners(String currentUserId) {
     SocketService.initSocket(
       onNewMessage: (data) {
-        if (data['message'] != null) {
-          final msg = MessageModel.fromJson(data['message'], currentUserId: currentUserId);
+        final rawMsg = data['message'] ?? data;
+        if (rawMsg != null && rawMsg is Map<String, dynamic>) {
+          final msg = MessageModel.fromJson(rawMsg, currentUserId: currentUserId);
           addIncomingMessage(msg);
+        }
+      },
+      onMessageStatusUpdate: (data) {
+        final messageId = data['messageId'];
+        final conversationId = data['conversationId'];
+        final statusStr = data['status'];
+
+        if (conversationId != null && messageId != null && statusStr != null) {
+          final list = _messages[conversationId];
+          if (list != null) {
+            MessageStatus status = MessageStatus.SENT;
+            if (statusStr == 'DELIVERED') status = MessageStatus.DELIVERED;
+            if (statusStr == 'READ') status = MessageStatus.READ;
+
+            final idx = list.indexWhere((m) => m.id == messageId || m.clientMessageId == messageId);
+            if (idx != -1) {
+              final old = list[idx];
+              list[idx] = MessageModel(
+                id: old.id,
+                conversationId: old.conversationId,
+                senderId: old.senderId,
+                senderName: old.senderName,
+                senderAvatar: old.senderAvatar,
+                content: old.content,
+                type: old.type,
+                mediaUrl: old.mediaUrl,
+                fileName: old.fileName,
+                fileSize: old.fileSize,
+                duration: old.duration,
+                isMine: old.isMine,
+                status: status,
+                isViewOnce: old.isViewOnce,
+                viewOnceOpened: old.viewOnceOpened,
+                isPinned: old.isPinned,
+                isDeleted: old.isDeleted,
+                replyToMessage: old.replyToMessage,
+                reactions: old.reactions,
+                createdAt: old.createdAt,
+                clientMessageId: old.clientMessageId,
+              );
+              notifyListeners();
+            }
+          }
         }
       },
       onUserStatus: (data) {
         final userId = data['userId'];
         final isOnline = data['isOnline'] == true;
         if (userId != null) {
+          bool updated = false;
           _conversations = _conversations.map((c) {
             if (!c.isGroup && c.otherUser?.id == userId) {
+              updated = true;
               return ConversationModel(
                 id: c.id,
                 isGroup: c.isGroup,
@@ -68,26 +157,35 @@ class ChatProvider extends ChangeNotifier {
                 lastMessage: c.lastMessage,
                 lastMessageAt: c.lastMessageAt,
                 members: c.members,
-                otherUser: c.otherUser,
+                otherUser: c.otherUser != null
+                    ? c.otherUser!.copyWith(isOnline: isOnline)
+                    : null,
               );
             }
             return c;
           }).toList();
-          notifyListeners();
+          if (updated) notifyListeners();
         }
       },
-      onTyping: (data) {
+      onTypingStart: (data) {
         final convId = data['conversationId'];
         if (convId != null) {
           _typingUsers[convId] = true;
           notifyListeners();
-          Future.delayed(const Duration(seconds: 3), () {
-            _typingUsers[convId] = false;
-            notifyListeners();
-          });
+        }
+      },
+      onTypingStop: (data) {
+        final convId = data['conversationId'];
+        if (convId != null) {
+          _typingUsers[convId] = false;
+          notifyListeners();
         }
       },
       onIncomingCall: (data) {},
+      onProfileVisitor: (data) {
+        _unreadVisitorsCount += 1;
+        notifyListeners();
+      },
     );
   }
 
@@ -114,8 +212,11 @@ class ChatProvider extends ChangeNotifier {
   }
 
   Future<void> fetchMessages(String conversationId, String currentUserId) async {
-    _isLoadingMessages = true;
-    notifyListeners();
+    // Only set loading if no cached messages exist
+    if (!_messages.containsKey(conversationId) || _messages[conversationId]!.isEmpty) {
+      _isLoadingMessages = true;
+      notifyListeners();
+    }
 
     SocketService.joinConversation(conversationId);
 
@@ -124,9 +225,11 @@ class ChatProvider extends ChangeNotifier {
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['messages'] is List) {
-          _messages[conversationId] = (data['messages'] as List)
+          final fetched = (data['messages'] as List)
               .map((m) => MessageModel.fromJson(m, currentUserId: currentUserId))
               .toList();
+
+          _messages[conversationId] = fetched;
         }
       }
     } catch (e) {
@@ -139,10 +242,35 @@ class ChatProvider extends ChangeNotifier {
 
   void addIncomingMessage(MessageModel msg) {
     final list = _messages[msg.conversationId] ?? [];
-    if (!list.any((m) => m.id == msg.id)) {
+    // Prevent duplicate entries
+    if (!list.any((m) => m.id == msg.id || (msg.clientMessageId != null && m.clientMessageId == msg.clientMessageId))) {
       _messages[msg.conversationId] = [...list, msg];
-      notifyListeners();
     }
+
+    // Update conversation in list (last message & unread badge)
+    final idx = _conversations.indexWhere((c) => c.id == msg.conversationId);
+    final isCurrentChat = _currentlyOpenConversationId == msg.conversationId;
+
+    if (idx != -1) {
+      final old = _conversations[idx];
+      final newUnread = (msg.isMine || isCurrentChat) ? old.unreadCount : old.unreadCount + 1;
+
+      _conversations[idx] = ConversationModel(
+        id: old.id,
+        isGroup: old.isGroup,
+        name: old.name,
+        description: old.description,
+        avatar: old.avatar,
+        isArchived: old.isArchived,
+        isPinned: old.isPinned,
+        unreadCount: newUnread,
+        lastMessage: msg.content.isNotEmpty ? msg.content : '[Attachment]',
+        lastMessageAt: msg.createdAt,
+        members: old.members,
+        otherUser: old.otherUser,
+      );
+    }
+    notifyListeners();
   }
 
   Future<void> sendMessage({
@@ -167,6 +295,26 @@ class ChatProvider extends ChangeNotifier {
     // Optimistic UI update
     final currentList = _messages[conversationId] ?? [];
     _messages[conversationId] = [...currentList, optimisticMsg];
+
+    // Update conversation list preview immediately
+    final idx = _conversations.indexWhere((c) => c.id == conversationId);
+    if (idx != -1) {
+      final old = _conversations[idx];
+      _conversations[idx] = ConversationModel(
+        id: old.id,
+        isGroup: old.isGroup,
+        name: old.name,
+        description: old.description,
+        avatar: old.avatar,
+        isArchived: old.isArchived,
+        isPinned: old.isPinned,
+        unreadCount: old.unreadCount,
+        lastMessage: content.isNotEmpty ? content : '[Attachment]',
+        lastMessageAt: DateTime.now(),
+        members: old.members,
+        otherUser: old.otherUser,
+      );
+    }
     notifyListeners();
 
     try {
@@ -180,8 +328,9 @@ class ChatProvider extends ChangeNotifier {
         final data = jsonDecode(res.body);
         if (data['message'] != null) {
           final confirmed = MessageModel.fromJson(data['message'], currentUserId: currentUserId);
-          _messages[conversationId] = _messages[conversationId]!
-              .map((m) => m.id == clientMessageId ? confirmed : m)
+          final list = _messages[conversationId] ?? [];
+          _messages[conversationId] = list
+              .map((m) => (m.id == clientMessageId || m.clientMessageId == clientMessageId) ? confirmed : m)
               .toList();
           notifyListeners();
         }

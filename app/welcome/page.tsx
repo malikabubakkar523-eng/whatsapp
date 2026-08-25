@@ -51,6 +51,7 @@ export default function WelcomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "voice" | "call">("chat");
   const [videoMuted, setVideoMuted] = useState(true);
+  const [videoFailed, setVideoFailed] = useState(false);
   const [helpForm, setHelpForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [helpSubmitted, setHelpSubmitted] = useState(false);
 
@@ -230,27 +231,47 @@ export default function WelcomePage() {
       <div className="h-16" />
 
       {/* ============================================================ */}
-      {/* 1.5  FULLSCREEN VIDEO HERO                                    */}
+      {/* 1.5  FULLSCREEN VIDEO HERO WITH FAIL-SAFE FALLBACK             */}
       {/* ============================================================ */}
-      <section className="relative w-full h-[60vh] sm:h-[75vh] overflow-hidden bg-black">
-        <video
-          autoPlay
-          loop
-          muted={videoMuted}
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-          src="https://flow-content.google/video/c064ff3e-cd0b-4b7e-8f34-c1f827f15493?Expires=1787608405&KeyName=labs-flow-prod-cdn-key&Signature=zo7El8nlNLfqKJCzPU8wF8ZGzNg"
-        />
+      <section className="relative w-full h-[60vh] sm:h-[75vh] overflow-hidden bg-[#0a0f12]">
+        {!videoFailed ? (
+          <video
+            autoPlay
+            loop
+            muted={videoMuted}
+            playsInline
+            onError={() => setVideoFailed(true)}
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+            src="https://assets.mixkit.co/videos/preview/mixkit-software-developer-working-on-code-screen-close-up-1728-large.mp4"
+          >
+            <source
+              src="https://assets.mixkit.co/videos/preview/mixkit-software-developer-working-on-code-screen-close-up-1728-large.mp4"
+              type="video/mp4"
+            />
+          </video>
+        ) : (
+          /* High-End Futuristic Dynamic Animated Backdrop Fallback */
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0c1317] via-[#111b21] to-[#0a1014] overflow-hidden">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#25D366]/15 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-[#00D2FF]/10 rounded-full blur-3xl animate-pulse [animation-delay:1.5s]" />
+            <div className="absolute inset-0 bg-[radial-gradient(#25D366_1px,transparent_1px)] [background-size:24px_24px] opacity-15" />
+          </div>
+        )}
+
         {/* Dark Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
+
         {/* Mute/Unmute Toggle */}
-        <button
-          onClick={() => setVideoMuted(!videoMuted)}
-          className="absolute bottom-6 right-6 z-10 p-3 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white hover:bg-black/70 transition-all active:scale-90"
-          title={videoMuted ? "Unmute" : "Mute"}
-        >
-          {videoMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-        </button>
+        {!videoFailed && (
+          <button
+            onClick={() => setVideoMuted(!videoMuted)}
+            className="absolute bottom-6 right-6 z-10 p-3 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white hover:bg-black/70 transition-all active:scale-90"
+            title={videoMuted ? "Unmute" : "Mute"}
+          >
+            {videoMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+          </button>
+        )}
+
         {/* Overlay Content */}
         <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center text-center px-6">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-[12px] font-bold mb-5 animate-pulse">
@@ -264,7 +285,7 @@ export default function WelcomePage() {
             </span>
           </h1>
           <p className="text-sm sm:text-base text-white/80 mt-4 max-w-lg">
-            Real-time chat, HD video calls, 24h stories, and AI — all in one beautifully crafted app.
+            Real-time chat, HD video calls, 24h stories, AI assistant, and live Profile Visitors tracking.
           </p>
           <div className="flex gap-3 mt-7">
             <Link
@@ -573,6 +594,30 @@ export default function WelcomePage() {
                     {e}
                   </span>
                 ))}
+              </div>
+            </div>
+
+            {/* Profile Visitors Feature Card */}
+            <div className="bg-white dark:bg-[#111B21] p-4 rounded-2xl shadow-xs border border-[#25D366]/20 bg-[#25D366]/[0.02]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-[#00A884] flex items-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5" /> Real-Time Profile Visitors
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#00A884]/15 text-[#00A884] font-bold">New</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-[#00A884]/20 border border-[#00A884] flex items-center justify-center text-xs font-bold text-[#00A884]">
+                    EW
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-900 dark:text-white">Emma Watson</p>
+                    <p className="text-[11px] text-[#00A884]">Viewed your profile • 2m ago</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-1 rounded-md bg-black/[0.05] dark:bg-white/[0.08] text-gray-700 dark:text-gray-300">
+                  Logged
+                </span>
               </div>
             </div>
           </div>
